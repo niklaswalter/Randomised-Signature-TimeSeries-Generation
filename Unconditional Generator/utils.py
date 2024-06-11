@@ -47,6 +47,10 @@ def get_activation(id):
     elif id == "Tanh":
         return nn.Tanh()
 
+"""
+See also https://https://github.com/SigCGANs for some of the following metrics´
+"""
+
 
 def cov(x, rowvar=False, bias=True, ddof=None, aweights=None):
     x = to_numpy(x)
