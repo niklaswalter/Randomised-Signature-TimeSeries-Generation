@@ -66,7 +66,7 @@ class NeuralSDEGenerator(GeneratorBase):
         """
         
         self.readouts = nn.ModuleList([nn.Linear(self.reservoir_dim, self.output_dim, device=DEVICE)
-                                       for i in range(10)])
+                                       for i in range(N_LAGS)])
 
     def solve_neural_sde(self, V: torch.tensor, W: torch.tensor) -> torch.tensor:
         """
