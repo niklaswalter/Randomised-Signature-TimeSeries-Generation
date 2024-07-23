@@ -71,7 +71,7 @@ class RSigW1Metric:
             self.expected_rsig_real = compute_rsig(self.x_real, self.A1, self.A2, self.xi1, self.xi2, self.res_dim,
                                                    self.activation).mean(0).to(self.device)
 
-    def __call__(self, x_fake: torch.tensor) -> double:
+    def __call__(self, x_fake: torch.tensor) -> float:
         if self.terminal_diff:
             expected_rsig_fake = compute_rsig_td(x_fake, self.A1, self.A2, self.xi1, self.xi2, self.res_dim,
                                                  self.activation).mean(0).to(self.device)
