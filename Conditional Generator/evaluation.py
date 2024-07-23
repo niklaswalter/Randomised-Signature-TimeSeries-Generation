@@ -43,6 +43,29 @@ class Evaluation:
     def print_summary(self):
         try:
           os.makedirs("evaluation/{}".format(self.data_type))
+          file = open("evaluation/{}/{}-{}-{}.txt".format(self.data_type, self.generator_id, self.discriminator_id,
+                                                          datetime.now().strftime("%d%m%Y-%H%M%S")), 'w+')
+          file.write("-------------------------------\nTRAINING SUMMARY\n------------------------------\n")
+          file.write("Generator: {}\nDiscriminator: {}\nActivation: {}\nGradient steps: {}\nLearning rate:"
+                    " {}\nReservoir dimension: {}\n".format(self.generator_id, self.discriminator_id,
+                                                            self.activation_id, self.num_epochs, self.learning_rate,
+                                                            self.reservoir_dim))
+          file.write("-------------------------------\n")
+          file.write("Training Error:\n")
+          file.write("{:.4e}\n".format(self.training.best_loss))
+          file.write("-------------------------------\n")
+          file.write("Autocorrelation Metric:\n")
+          file.write("Training Error: {:.4e}\n".format(acf_diff(self.x_future_train, self.x_fake_train, Q//2)))
+          file.write("Test Error: {:.4e}\n".format(acf_diff(self.x_future_test, self.x_fake_test, Q // 2)))
+          file.write("-------------------------------\n")
+          file.write("Covariance Metric:\n")
+          file.write("Training Error: {:.4e}\n".format(acf_diff(self.x_future_train, self.x_fake_train, Q // 2)))
+          file.write("Test Error: {:.4e}\n".format(acf_diff(self.x_future_test, self.x_fake_test, Q // 2)))
+          sys.stdout = file
+          print(self.training.train_losses_history)
+          file.write("-------------------------------\n")
+          sys.stdout = file
+          print(self.training.val_losses_history)
         except FileExistsError:
           file = open("evaluation/{}/{}-{}-{}.txt".format(self.data_type, self.generator_id, self.discriminator_id,
                                                           datetime.now().strftime("%d%m%Y-%H%M%S")), 'w+')
@@ -71,6 +94,9 @@ class Evaluation:
     def save_best_generator(self):
         try:
           os.makedirs("best_generators/{}".format(self.data_type))
+          torch.save(self.best_generator.state_dict(), "best_generators/{}/{}-{}-{}-{}-{}.pt".
+               format(self.data_type, self.generator_id, self.discriminator_id, self.activation,
+                      self.num_epochs, datetime.now().strftime("%d%m%Y-%H%M%S")))
         except FileExistsError:
           torch.save(self.best_generator.state_dict(), "best_generators/{}/{}-{}-{}-{}-{}.pt".
                    format(self.data_type, self.generator_id, self.discriminator_id, self.activation,
@@ -79,6 +105,15 @@ class Evaluation:
     def save_paths(self):
         try:
           os.makedirs("best_generators/{}".format(self.data_type))
+          torch.save(self.x_fake_train.detach(), "best_generators/{}/{}-{}-{}-{}-{}-fake.pt".
+                    format(self.data_type, self.generator_id, self.discriminator_id, self.activation,
+                            self.num_epochs, datetime.now().strftime("%d%m%Y-%H%M%S")))
+          torch.save(self.x_fake_test.detach(), "best_generators/{}/{}-{}-{}-{}-{}-train.pt".
+                    format(self.data_type, self.generator_id, self.discriminator_id, self.activation,
+                            self.num_epochs, datetime.now().strftime("%d%m%Y-%H%M%S")))
+          torch.save(self.x_train.detach(), "best_generators/{}/{}-{}-{}-{}-{}-test.pt".
+                    format(self.data_type, self.generator_id, self.discriminator_id, self.activation,
+                            self.num_epochs, datetime.now().strftime("%d%m%Y-%H%M%S")))
         except FileExistsError:
           torch.save(self.x_fake_train.detach(), "best_generators/{}/{}-{}-{}-{}-{}-fake.pt".
                     format(self.data_type, self.generator_id, self.discriminator_id, self.activation,
@@ -104,6 +139,9 @@ class Evaluation:
         plt.show()
         try:
           os.makedirs("best_generators/{}".format(self.data_type))
+          fig.savefig("best_generators/{}/{}-{}-{}-{}-{}-plot.pdf".
+                    format(self.data_type, self.generator_id, self.discriminator_id,
+                           self.activation,self.num_epochs, datetime.now().strftime("%d%m%Y-%H%M%S")))
         except FileExistsError:
           fig.savefig("best_generators/{}/{}-{}-{}-{}-{}-plot.pdf".
                     format(self.data_type, self.generator_id, self.discriminator_id,
