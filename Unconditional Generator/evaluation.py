@@ -66,6 +66,43 @@ class Evaluation:
     def print_summary(self):
         try:
           os.makedirs("evaluation/{}".format(self.data_type))
+          file = open("evaluation/{}/{}-{}-{}.txt".format(self.data_type, self.generator_id, self.discriminator_id,
+                                                          datetime.now().strftime("%d%m%Y-%H%M%S")), 'w+')
+          file.write("-------------------------------\nTRAINING SUMMARY\n------------------------------\n")
+          file.write("Generator: {}\nDiscriminator: {}\nActivation: {}\nGradient steps: {}\nLearning rate:"
+                    " {}\nReservoir dimension: {}\nData dimension: {}\n".format(self.generator_id,
+                                                                                self.discriminator_id,
+                                                                                self.activation_id, self.num_epochs,
+                                                                                self.learning_rate,
+                                                                                RESERVOIR_DIM_METRIC,
+                                                                                DATA_DIM))
+          file.write("-------------------------------\n")
+          file.write("Drift BM: {}\nStd BM: {}\nDrift GBM: {}\nStd GBM: {}\nPhi AR: {}\nStd AR: {}\n".format(
+              DRIFT_BM, STD_BM, DRIFT_GBM, STD_GBM, PHI, STD_AR))
+          file.write("-------------------------------\n")
+          file.write("{}:\n".format(self.discriminator_id))
+          file.write("Training error: {:.4e}\nTest error: {:.4e}\n".format(self.train_error, self.test_error))
+          file.write("-------------------------------\n")
+          file.write("Correlation Metric:\n")
+          file.write("Training error: {:.4e}\nTest error: {:.4e}\n".format(self.corr_train_error,
+                                                                          self.corr_test_error))
+          file.write("-------------------------------\n")
+          file.write("Autocorrelation Metric:\n")
+          file.write("Training error: {:.4e}\nTest error: {:.4e}\n".format(self.acf_train_error,
+                                                                          self.acf_test_error))
+          if self.data_type == "BM":
+              file.write("-------------------------------\n")
+              file.write("Results of Normality Test:\n")
+              for i in range(1, self.n_lags):
+                  file.write("Normaltest #{}: {}\n".format(i, p_val_normaltest(self.x_fake, i) > 0.05))
+
+          file.write("-------------------------------\n")
+          sys.stdout = file
+          print(self.training.train_losses_history)
+          file.write("-------------------------------\n")
+          sys.stdout = file
+          print(self.training.val_losses_history)
+
         except FileExistsError:
           file = open("evaluation/{}/{}-{}-{}.txt".format(self.data_type, self.generator_id, self.discriminator_id,
                                                           datetime.now().strftime("%d%m%Y-%H%M%S")), 'w+')
@@ -107,6 +144,9 @@ class Evaluation:
     def save_best_generator(self):
       try:
         os.makedirs("best_generators/{}".format(self.data_type))
+        torch.save(self.best_generator.state_dict(), "best_generators/{}/{}-{}-{}-{}-{}.pt".
+                   format(self.data_type, self.generator_id, self.discriminator_id, self.activation,
+                          self.num_epochs, datetime.now().strftime("%d%m%Y-%H%M%S")))
       except FileExistsError:
         torch.save(self.best_generator.state_dict(), "best_generators/{}/{}-{}-{}-{}-{}.pt".
                    format(self.data_type, self.generator_id, self.discriminator_id, self.activation,
@@ -115,6 +155,15 @@ class Evaluation:
     def save_paths(self):
       try:
         os.makedirs("best_generators/{}".format(self.data_type))
+        torch.save(self.x_fake_scale_inverse.detach(), "best_generators/{}/{}-{}-{}-{}-{}-fake.pt".
+                   format(self.data_type, self.generator_id, self.discriminator_id, self.activation,
+                          self.num_epochs, datetime.now().strftime("%d%m%Y-%H%M%S")))
+        torch.save(self.x_train_scale_inverse.detach(), "best_generators/{}/{}-{}-{}-{}-{}-train.pt".
+                   format(self.data_type, self.generator_id, self.discriminator_id, self.activation,
+                          self.num_epochs, datetime.now().strftime("%d%m%Y-%H%M%S")))
+        torch.save(self.x_test_scale_inverse.detach(), "best_generators/{}/{}-{}-{}-{}-{}-test.pt".
+                   format(self.data_type, self.generator_id, self.discriminator_id, self.activation,
+                          self.num_epochs, datetime.now().strftime("%d%m%Y-%H%M%S")))
       except FileExistsError:
         torch.save(self.x_fake_scale_inverse.detach(), "best_generators/{}/{}-{}-{}-{}-{}-fake.pt".
                    format(self.data_type, self.generator_id, self.discriminator_id, self.activation,
@@ -139,6 +188,9 @@ class Evaluation:
         plt.show()
         try:
           os.makedirs("best_generators/{}".format(self.data_type))
+          fig.savefig("best_generators/{}/{}-{}-{}-{}-{}-plot.pdf".
+                      format(self.data_type, self.generator_id, self.discriminator_id,
+                            self.activation, self.num_epochs, datetime.now().strftime("%d%m%Y-%H%M%S")))
         except FileExistsError:
           fig.savefig("best_generators/{}/{}-{}-{}-{}-{}-plot.pdf".
                       format(self.data_type, self.generator_id, self.discriminator_id,
