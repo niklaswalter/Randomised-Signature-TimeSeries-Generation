@@ -88,7 +88,7 @@ class RSigWGANTraining:
     """
 
     def __init__(self, x_train: torch.tensor, x_val: torch.tensor, batch_size: int, generator,
-                 num_grad_steps: int, learning_rate: double, res_dim: int, data_dim: int, activation: str,
+                 num_grad_steps: int, learning_rate: float, res_dim: int, data_dim: int, activation: str,
                  device=DEVICE):
         self.x_train = x_train
         self.x_val = x_val
