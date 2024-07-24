@@ -31,7 +31,7 @@ class BM(Data):
     Class implementing generation of Brownian motion paths
     """
 
-    def __init__(self, n_lags: int, drift: double = 0.0, std: double = 1.0, dim: int = 1, T: double = 1.0):
+    def __init__(self, n_lags: int, drift: float = 0.0, std: float = 1.0, dim: int = 1, T: float = 1.0):
         super().__init__(n_lags)
         self.drift = drift
         self.std = std
@@ -51,7 +51,7 @@ class AR(Data):
     Class implementing generation of paths of AR(1) process
     """
 
-    def __init__(self, n_lags: int, phi: double, std: double = 1.0, dim: int = 1):
+    def __init__(self, n_lags: int, phi: float, std: float = 1.0, dim: int = 1):
         super().__init__(n_lags)
         self.phi = phi
         self.std = std
