@@ -8,18 +8,15 @@ import torch
 import torch.nn as nn
 from typing import Tuple
 from config import *
+from torch.types import Device
 
 class GeneratorBase(nn.Module):
-    """
-    The parent class for generator models
-    """
-    
     def __init__(self, input_dim: int, output_dim: int):
         super(GeneratorBase, self).__init__()
         self.input_dim = input_dim
         self.output_dim = output_dim
 
-    def forward(self, batch_size: int, n_lags: int, device: str = 'cpu'):
+    def forward(self, batch_size: int, n_lags: int, device: str=Device):
         """
         to be specified for the individual generator
         """
@@ -27,12 +24,8 @@ class GeneratorBase(nn.Module):
 
 
 class NeuralSDEGenerator(GeneratorBase):
-    """
-    Class implementing the NeuralSDE generator model
-    """
-    
     def __init__(self, input_dim: int, output_dim: int, reservoir_dim: int, brownian_dim: int, activation,
-                 hidden_dim: int = 32, device: str = DEVICE):
+                 hidden_dim: int=32, device: str=DEVICE):
         super().__init__(input_dim, output_dim)
         self.reservoir_dim = reservoir_dim
         self.brownian_dim = brownian_dim
@@ -43,57 +36,54 @@ class NeuralSDEGenerator(GeneratorBase):
         Linear layers for initial condition NN
         """
         self.hidden_dim = hidden_dim
-        self.init_layer1 = nn.Linear(self.input_dim, self.hidden_dim, device = self.device)
-        self.init_layer2 = nn.Linear(self.hidden_dim, self.reservoir_dim, device = self.device)
+        self.init_layer1 = nn.Linear(self.input_dim, self.hidden_dim, device=self.device)
+        self.init_layer2 = nn.Linear(self.hidden_dim, self.reservoir_dim, device=self.device)
 
         """
         Sample random matrices and biases for reservoir 
         """
-        self.rho1, self.rho2, self.rho3, self.rho4 = (nn.Parameter(torch.randn(1, 1).to(self.device)), nn.Parameter(torch.randn(1, 1).to(self.device)),
-                                                      nn.Parameter(torch.randn(1, 1).to(self.device)), nn.Parameter(torch.randn(1, 1).to(self.device)))
-
+        self.rho1 = nn.Parameter(torch.randn(1, 1).to(self.device))
+        self.rho2 = nn.Parameter(torch.randn(1, 1).to(self.device))
+        self.rho3 = nn.Parameter(torch.randn(1, 1).to(self.device))
+        self.rho4 = nn.Parameter(torch.randn(1, 1).to(self.device))
+        self.rho5 = nn.Parameter(torch.randn(1, 1).to(self.device))
+                                                        
+        self.B1, self.B2 = B1, B2
+        self.lambda1, self.lambda2 = lambda1, lambda2
         
-        self.B1, self.B2 = (torch.randn(self.reservoir_dim, self.reservoir_dim, device = DEVICE),
-                            torch.randn(self.brownian_dim, self.reservoir_dim, self.reservoir_dim, device = DEVICE))
-
-        self.lambda1, self.lambda2 = (torch.randn(self.reservoir_dim, 1, device = DEVICE),
-                                      torch.randn(self.brownian_dim, self.reservoir_dim, 1, device = DEVICE))
-
         self.activation = activation
 
         """
-        Linear readout layers for the reservoir 
+        Linear readout layer for the reservoir 
         """
-        
-        self.readouts = nn.ModuleList([nn.Linear(self.reservoir_dim, self.output_dim, device=DEVICE)
-                                       for i in range(N_LAGS)])
+        self.readout = nn.Linear(self.reservoir_dim, self.output_dim, device = DEVICE)
+        # self.readouts = nn.ModuleList([nn.Linear(self.reservoir_dim, self.output_dim, device=DEVICE) for i in range(N_LAGS)])
 
     def solve_neural_sde(self, V: torch.tensor, W: torch.tensor) -> torch.tensor:
-        """
-        Methods solving the NeuralSDE numerically using an EM scheme
-        """
         R = torch.empty(W.shape[0], W.shape[1], self.B1.shape[0], 1, device=DEVICE).clone()
         R[:, 0, :] = V.clone()
 
         for t in range(1, W.shape[1]):
-            R[:, t, :] = (R[:, t - 1, :].clone() + self.activation(self.rho1 * self.B1 @ R[:, t - 1, :].clone()
-                          + self.rho2 * self.lambda1) + torch.sum(self.activation(self.rho3 * self.B2 @ R[:, t - 1, :].unsqueeze(-3).clone()
-                          + self.rho4 * self.lambda2)
-                          @ (W[:, t, :, None, None] - W[:, t - 1, :, None, None]), axis=1))
+            R[:, t, :] = (R[:, t - 1, :].clone() + self.activation(self.rho1 * self.B1 @ R[:, t - 1, :].clone() + self.rho2 * self.lambda1)+ torch.sum(self.activation(self.rho3 * self.B2 @ R[:, t - 1, :].unsqueeze(-3).clone()
+                                                      + self.rho4 * self.lambda2)
+                                      @ self.rho5 * (W[:, t, :, None, None] - W[:, t - 1, :, None, None]), axis=1))
                          
         return R
 
-    def forward(self, batch_size: int, n_lags: int, device: str = DEVICE) -> torch.tensor:
+    def forward(self, batch_size: int, n_lags: int, device: str=DEVICE) -> torch.tensor:
         """
-        Methods implementing forward call
+        :param batch_size: number of samples
+        :param n_lags: number of time steps
+        :param device: depends on system setup (cpu or gpu)
+        :return: tensor of synthetic data
         """
 
-        V = torch.randn(batch_size, self.input_dim, device = device)
+        V = torch.randn(batch_size, self.input_dim, device=device)
         V = self.init_layer1(V)
         V = self.activation(V)
         V = self.init_layer2(V)
         V = torch.reshape(V, (batch_size, self.reservoir_dim, 1))
-        increments = torch.randn(batch_size, n_lags, self.brownian_dim, device = device)
+        increments = torch.randn(batch_size, n_lags, self.brownian_dim, device=device)
         W = torch.cumsum(increments, 1)
         W[:, 0, :] = 0.0
 
@@ -101,28 +91,23 @@ class NeuralSDEGenerator(GeneratorBase):
 
         for n in range(n_lags):
             if n == 0:
-                x = self.readouts[n](R[:, n].reshape(R[:, n].shape[0], -1))
+                # x = self.readouts[n](R[:, n].reshape(R[:, n].shape[0], -1))
+                x = self.readout(R[:, n].reshape(R[:, n].shape[0], -1))
             else:
-                x = torch.cat((x, self.readouts[n](R[:, n].reshape(R[:, n].shape[0], -1))), 1)
+                # x = torch.cat((x, self.readouts[n](R[:, n].reshape(R[:, n].shape[0], -1))), 1)
+                x = torch.cat((x, self.readout(R[:, n].reshape(R[:, n].shape[0], -1))), 1)
 
         return x.reshape(x.shape[0], x.shape[1], 1)
 
 
 class ResidualBlock(nn.Module):
-    """
-    Class for single residual block
-    """
-
     def __init__(self, input_dim: int, output_dim: int):
         super(ResidualBlock, self).__init__()
         self.linear = nn.Linear(input_dim, output_dim)
         self.activation = nn.ReLU()
         self.create_residual_connection = True if input_dim == output_dim else False
 
-    def forward(self, x: torch.tensor) -> torch.tensor:
-        """
-        Methods implementing forward call
-        """
+    def forward(self, x):
         y = self.linear(x)
         y = self.activation(y)
         if self.create_residual_connection:
@@ -131,9 +116,6 @@ class ResidualBlock(nn.Module):
 
 
 class ResFNN(nn.Module):
-    """
-    Class for ResFNN for initial NN in LSTM generator
-    """
     def __init__(self, input_dim: int, output_dim: int, hidden_dims: Tuple[int], flatten: bool = False):
         super(ResFNN, self).__init__()
         blocks = list()
@@ -143,7 +125,7 @@ class ResFNN(nn.Module):
         for hidden_dim in hidden_dims:
             blocks.append(ResidualBlock(input_dim_block, hidden_dim))
             input_dim_block = hidden_dim
-        blocks.append(nn.Linear(input_dim_block, output_dim, device = DEVICE))
+        blocks.append(nn.Linear(input_dim_block, output_dim, device=DEVICE))
         self.network = nn.Sequential(*blocks)
         self.blocks = blocks
 
@@ -164,18 +146,13 @@ def init_weights(m):
 
 
 class LSTMGenerator(GeneratorBase):
-    """
-    Class implementing LSTM generator
-    """
-
-    def __init__(self, input_dim: int, output_dim: int, hidden_dim: int, num_layers: int, device: str = DEVICE):
+    def __init__(self, input_dim: int, output_dim: int, hidden_dim: int, num_layers: int, device: str=DEVICE):
         super().__init__(input_dim, output_dim)
         self.input_dim = input_dim
         self.output_dim = output_dim
         self.hidden_dim = hidden_dim
-        self.rnn = nn.LSTM(input_size=input_dim, hidden_size=hidden_dim, num_layers=num_layers, batch_first=True,
-                           device = device)
-        self.linear = nn.Linear(hidden_dim, output_dim, bias=True, device = device)
+        self.rnn = nn.LSTM(input_size=input_dim, hidden_size=hidden_dim, num_layers=num_layers, batch_first=True, device=device)
+        self.linear = nn.Linear(hidden_dim, output_dim, bias=True, device=device)
         self.linear.apply(init_weights)
         self.device = device
 
@@ -183,11 +160,7 @@ class LSTMGenerator(GeneratorBase):
                                         nn.Tanh())
         self.initial_nn.apply(init_weights)
 
-    def forward(self, batch_size, n_lags, **kwargs) -> torch.tensor:
-        """
-        Method implementing forward call
-        """
-
+    def forward(self, batch_size, n_lags, **kwargs):
         z = (0.1 * torch.randn(batch_size, n_lags, self.input_dim)).to(self.device)
         z[:, 0, :] *= 0
         z = z.cumsum(1)
