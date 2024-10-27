@@ -46,18 +46,35 @@ class NeuralSDEGenerator(GeneratorBase):
         self.rho2 = nn.Parameter(torch.randn(1, 1).to(self.device))
         self.rho3 = nn.Parameter(torch.randn(1, 1).to(self.device))
         self.rho4 = nn.Parameter(torch.randn(1, 1).to(self.device))
-        self.rho5 = nn.Parameter(torch.randn(1, 1).to(self.device))
-                                                        
-        self.B1, self.B2 = B1, B2
-        self.lambda1, self.lambda2 = lambda1, lambda2
+
+        if TRAINABLE_VARIANCE:
+          self.rho5 = nn.Parameter(torch.randn(1, 1).to(self.device))
+        else: 
+          self.rho5 = nn.Parameter(torch.ones(1, 1), requires_grad=False)
+
+        if SAME_MATRICES:
+          # Dimension of generator and metric needs to be the same
+          assert RESERVOIR_DIM_GEN == RESERVOIR_DIM_METRIC
+
+          self.B1, self.B2 = B1, B2
+          self.lambda1, self.lambda2 = lambda1, lambda2
+        else:
+          self.B1, self.B2 = (torch.randn(RESERVOIR_DIM_GEN, RESERVOIR_DIM_GEN, device = DEVICE),
+                        torch.randn(BROWNIAN_DIM, RESERVOIR_DIM_GEN, RESERVOIR_DIM_GEN, device = DEVICE))
+
+          self.lambda1, self.lambda2 = (torch.randn(RESERVOIR_DIM_GEN, 1, device = DEVICE),
+                             torch.randn(BROWNIAN_DIM, RESERVOIR_DIM_GEN, 1, device = DEVICE))
         
         self.activation = activation
 
         """
         Linear readout layer for the reservoir 
         """
-        self.readout = nn.Linear(self.reservoir_dim, self.output_dim, device = DEVICE)
-        # self.readouts = nn.ModuleList([nn.Linear(self.reservoir_dim, self.output_dim, device=DEVICE) for i in range(N_LAGS)])
+
+        if TIME_HOMOGENEOUS_READOUT:
+          self.readouts = [nn.Linear(self.reservoir_dim, self.output_dim, device = DEVICE)] * N_LAGS
+        else:
+          self.readouts = nn.ModuleList([nn.Linear(self.reservoir_dim, self.output_dim, device=DEVICE) for i in range(N_LAGS)])
 
     def solve_neural_sde(self, V: torch.tensor, W: torch.tensor) -> torch.tensor:
         R = torch.empty(W.shape[0], W.shape[1], self.B1.shape[0], 1, device=DEVICE).clone()
@@ -91,11 +108,9 @@ class NeuralSDEGenerator(GeneratorBase):
 
         for n in range(n_lags):
             if n == 0:
-                # x = self.readouts[n](R[:, n].reshape(R[:, n].shape[0], -1))
-                x = self.readout(R[:, n].reshape(R[:, n].shape[0], -1))
+                x = self.readouts[n](R[:, n].reshape(R[:, n].shape[0], -1))
             else:
-                # x = torch.cat((x, self.readouts[n](R[:, n].reshape(R[:, n].shape[0], -1))), 1)
-                x = torch.cat((x, self.readout(R[:, n].reshape(R[:, n].shape[0], -1))), 1)
+                x = torch.cat((x, self.readouts[n](R[:, n].reshape(R[:, n].shape[0], -1))), 1)
 
         return x.reshape(x.shape[0], x.shape[1], 1)
 
