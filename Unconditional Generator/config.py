@@ -14,9 +14,9 @@ DATA_DIM = 1
 
 # Brownian motion
 
-SAMPLES_BM = 50000
-DRIFT_BM = 0.0
-STD_BM = 1.0
+SAMPLES_BM = 100000
+DRIFT_BM = 0.1
+STD_BM = 0.2
 
 # Geometric Brownian motion
 
@@ -34,8 +34,8 @@ STD_AR = 1.0
 # Hyperparameters training
 
 LEARNING_RATE = 1e-4
-GRADIENT_STEPS = 3500
-BATCH_SIZE = 6000
+GRADIENT_STEPS = 10
+BATCH_SIZE = 10000
 
 # R-SIG-W1
 
@@ -48,7 +48,7 @@ NORMALISE_SIG = True
 
 # NeuralSDE
 
-INPUT_DIM_NSDE = 5
+INPUT_DIM_NSDE = 32
 BROWNIAN_DIM = 1
 RESERVOIR_DIM_GEN = 80
 ACTIVATION_ID = "Sigmoid"
@@ -59,9 +59,18 @@ INPUT_DIM_LSTM = 5
 HIDDEN_DIM_LSTM = 64
 NUM_LAYERS_LSTM = 2
 
+# Random matrices and biases
+
+B1, B2 = (torch.randn(RESERVOIR_DIM_GEN, RESERVOIR_DIM_GEN, device = DEVICE),
+                        torch.randn(BROWNIAN_DIM, RESERVOIR_DIM_GEN, RESERVOIR_DIM_GEN, device = DEVICE))
+
+lambda1, lambda2 = (torch.randn(RESERVOIR_DIM_GEN, 1, device = DEVICE),
+                             torch.randn(BROWNIAN_DIM, RESERVOIR_DIM_GEN, 1, device = DEVICE))
+
+
 # Data
 
-DATA_ID = "FOREX"
+DATA_ID = "BM"
 
 # Generator
 
@@ -71,4 +80,14 @@ GENERATOR_ID = "NeuralSDE"
 
 DISCRIMINATOR_ID = "RSigW1"
 
+# Switch Trainable Variance Parameter
 
+TRAINABLE_VARIANCE = True
+
+# Switch Same Random Matrices for Generator and RSig-W1
+
+SAME_MATRICES = False
+
+# Switch for time (in)homogeneous readouts
+
+TIME_HOMOGENEOUS_READOUT = False
