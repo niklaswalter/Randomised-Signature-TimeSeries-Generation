@@ -1,0 +1,16 @@
+name: rsg
+channels:
+  - pytorch
+  - conda-forge
+  - defaults
+dependencies:
+  - python=3.8.0
+  - numpy
+  - pandas
+  - matplotlib
+  - pytorch=1.6.0
+  - scipy
+  - tqdm
+  - hydra-core
+  - pyyaml
+  - jupyter
