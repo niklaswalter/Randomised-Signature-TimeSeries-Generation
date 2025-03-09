@@ -1,0 +1,9 @@
+[project]
+name = "rsig_gen"
+description = "Package for time-series generation using randomised signature"
+readme = "README.md"
+dynamic = ["version"]
+
+[build-system]
+requires = ["setuptools>=45", "wheel", "setuptools_scm[toml]>=6.2"]
+build-backend = 'setuptools.build_meta'

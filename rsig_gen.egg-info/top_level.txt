@@ -1,0 +1,1 @@
+rsig_wgan
