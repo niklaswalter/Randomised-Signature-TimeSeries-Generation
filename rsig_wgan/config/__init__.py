@@ -1,5 +1,3 @@
-# %%
-
 import yaml
 from typing import Any
 from pathlib import Path
@@ -21,4 +19,3 @@ def load_config() -> dict[str, Any]:
         return None
     
 __all__ = ["load_config"]
-# %%

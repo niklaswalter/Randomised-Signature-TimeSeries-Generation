@@ -24,8 +24,6 @@ class NeuralSDEGenerator(GeneratorBase):
         self.brownian_dim = brownian_dim
         self.activation = activation
         self.device = device
-        self.A1, self.A2 = A1, A2
-        self.xi1, self.xi2 = xi1, xi2
 
         """
         Linear layers for initial condition NN
@@ -59,14 +57,14 @@ class NeuralSDEGenerator(GeneratorBase):
           # Dimension of generator and metric needs to be the same
           assert load_config()['neural_sde']['reservoir_dim_gen'] == load_config()['rsigw1']['reservoir_dim_metric']
 
-          self.B1, self.B2 = B1, B2
-          self.lambda1, self.lambda2 = lambda1, lambda2
+          self.B1, self.B2 = A1, A2
+          self.lambda1, self.lambda2 = xi1, xi2
         else:
-          self.B1, self.B2 = (torch.randn(RESERVOIR_DIM_GEN, RESERVOIR_DIM_GEN, device = DEVICE),
-                        torch.randn(BROWNIAN_DIM, RESERVOIR_DIM_GEN, RESERVOIR_DIM_GEN, device = DEVICE))
+          self.B1, self.B2 = (torch.randn(RESERVOIR_DIM_GEN, RESERVOIR_DIM_GEN, device=self.device),
+                        torch.randn(BROWNIAN_DIM, RESERVOIR_DIM_GEN, RESERVOIR_DIM_GEN, device=self.device))
 
-          self.lambda1, self.lambda2 = (torch.randn(RESERVOIR_DIM_GEN, 1, device = DEVICE),
-                             torch.randn(BROWNIAN_DIM, RESERVOIR_DIM_GEN, 1, device = DEVICE))
+          self.lambda1, self.lambda2 = (torch.randn(RESERVOIR_DIM_GEN, 1, device=self.device),
+                             torch.randn(BROWNIAN_DIM, RESERVOIR_DIM_GEN, 1, device=self.device))
         
         self.activation = activation
 
