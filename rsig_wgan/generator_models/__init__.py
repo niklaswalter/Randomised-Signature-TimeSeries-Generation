@@ -1,1 +1,3 @@
-__all__ = []
+from .rsig import NeuralSDEGenerator
+
+__all__ = ["NeuralSDEGenerator"]

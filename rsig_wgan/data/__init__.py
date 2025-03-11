@@ -1,5 +1,6 @@
 from .data import * 
 from .scaling import *
+from .utils import *
 
 __all__ = [
     "BrownianMotion",
@@ -8,5 +9,8 @@ __all__ = [
     "FOREX",
     "get_data",
     "Standardiser",
-    "IDScaler"
+    "IDScaler",
+    "rolling_window",
+    "train_test_split",
+    "get_data"
 ]

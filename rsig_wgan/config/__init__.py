@@ -1,6 +1,7 @@
 import yaml
 from typing import Any
 from pathlib import Path
+from omegaconf import OmegaConf
 
 def load_config() -> dict[str, Any]:
     """
@@ -8,9 +9,8 @@ def load_config() -> dict[str, Any]:
         Dictionary with the config
     """
     try:
-        with open(Path(__file__).parent / "config.yml", 'r') as file:
-            config = yaml.safe_load(file)
-            return config
+        config = OmegaConf.load(Path(__file__).parent / "config.yml")
+        return config
     except FileNotFoundError:
         print(f"Error: The file at config.yml was not found.")
         return None

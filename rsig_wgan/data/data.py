@@ -6,19 +6,14 @@ Implements data loading environment for following data types:
     - FOREX EUR/USD log-returns
 """
 
-# %%
-
 import torch
 import math
 import numpy as np
 import pandas as pd
 import yfinance as yf
 from pathlib import Path
-from utils import rolling_window
-from scaling import Standardiser, IDScaler
+from .scaling import Standardiser, IDScaler
 
-
-# %%
 
 class Data:
     """
@@ -31,7 +26,6 @@ class Data:
     def generate(self, *kwargs):
         pass
 
-# %%
 
 class BrownianMotion(Data):
     """
@@ -52,7 +46,6 @@ class BrownianMotion(Data):
                                                                                           self.dim)
         return torch.cumsum(path, 1)
 
-# %%
 
 class AutoregressiveProcess(Data):
     """
@@ -73,6 +66,9 @@ class AutoregressiveProcess(Data):
         paths = self.scaler.transform(paths)
         return paths
 
+
+def rolling_window(x: torch.tensor, n_lags: int) -> torch.tensor:
+    return torch.cat([x[:, t:t + n_lags] for t in range(x.shape[1] - n_lags + 1)], dim=0)
 
 class SP500(Data):
     """
@@ -112,24 +108,3 @@ class FOREX(Data):
         log_returns = self.scaler.transform(log_returns)
         paths = rolling_window(log_returns, self.n_lags)
         return paths
-
-
-"""
-Function returning the sample paths for given data ID
-"""
-
-def get_data(id: str) -> torch.tensor:
-    data, paths = None, None
-    if id == "BM":
-        data = BM(N_LAGS, DRIFT_BM, STD_BM, DATA_DIM)
-        paths = data.generate(SAMPLES_BM)
-    elif id == "SP500":
-        data = SP500(N_LAGS)
-        paths = data.generate()
-    elif id == "AR":
-        data = AR(N_LAGS, PHI)
-        paths = data.generate(SAMPLES_AR)
-    elif id == "FOREX":
-        data = FOREX(N_LAGS)
-        paths = data.generate()
-    return [data, train_test_split(paths)]

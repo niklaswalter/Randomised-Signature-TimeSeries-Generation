@@ -44,5 +44,5 @@ discriminator:
   id: "RSigW1"
 others: 
   trainable_var: True
-  same_metrices: False
+  same_matrices: False
   time_homogeneous_readout: False
