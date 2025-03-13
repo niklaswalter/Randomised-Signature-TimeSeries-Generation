@@ -2,7 +2,7 @@ import torch
 import torch.nn as nn
 import omegaconf
 from typing import Union
-from rsig_wgan.config import load_config
+from rsig_wgan.config import activation_mapping
 from .base import GeneratorBase
 
 
@@ -10,7 +10,6 @@ class NeuralSDEGenerator(GeneratorBase):
     def __init__(
         self,
         config: omegaconf.dictconfig.DictConfig,
-        activation,
         device: str,
         A1: Union[torch.tensor, None],
         A2: Union[torch.tensor, None],
@@ -20,7 +19,7 @@ class NeuralSDEGenerator(GeneratorBase):
         super().__init__(config.neural_sde.input_dim, config.timeseries.data_dim)
         self.reservoir_dim = config.neural_sde.reservoir_dim_gen
         self.brownian_dim = config.neural_sde.brownian_dim
-        self.activation = activation
+        self.activation = activation_mapping[config.neural_sde.activation]
         self.hidden_dim = config.neural_sde.hidden_dim
         self.device = device
 
@@ -63,8 +62,6 @@ class NeuralSDEGenerator(GeneratorBase):
 
           self.lambda1, self.lambda2 = (torch.randn(self.reservoir_dim, 1, device=self.device),
                              torch.randn(self.brownian_dim, self.reservoir_dim, 1, device=self.device))
-        
-        self.activation = activation
 
         """
         Linear readout layer for the reservoir 

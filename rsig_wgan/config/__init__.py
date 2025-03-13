@@ -1,4 +1,5 @@
 import yaml
+import torch.nn as nn
 from typing import Any
 from pathlib import Path
 from omegaconf import OmegaConf
@@ -18,4 +19,7 @@ def load_config() -> dict[str, Any]:
         print(f"Error reading YAML file: {e}")
         return None
     
-__all__ = ["load_config"]
+activation_mapping = {"Sigmoid": nn.Sigmoid(), "Tanh": nn.Tanh()}
+    
+__all__ = ["load_config", "activation_mapping"]
+

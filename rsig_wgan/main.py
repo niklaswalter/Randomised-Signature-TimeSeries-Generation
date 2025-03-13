@@ -1,9 +1,9 @@
 # %%
 import torch
-import torch.nn as nn
 from rsig_wgan.config import load_config
 from rsig_wgan.data import get_data
 from rsig_wgan.generator_models import NeuralSDEGenerator
+from rsig_wgan.discriminator_models import RSigWGANTraining
 
 # %% 
 config = load_config()
@@ -34,19 +34,11 @@ xi1, xi2 = torch.randn(
             device=device,
             requires_grad=False
         )
-# %%
-
-def get_activation(id):
-    if id == "Sigmoid":
-        return nn.Sigmoid()
-    elif id == "Tanh":
-        return nn.Tanh()
     
 #%%
 
 generator = NeuralSDEGenerator(
                 config=config,
-                activation=nn.Sigmoid(),
                 device=device,
                 A1=A1,
                 A2=A2,
@@ -58,4 +50,14 @@ generator = NeuralSDEGenerator(
 
 data = get_data(config)[0]
 data_train, data_val, data_test = get_data(config)[1]
+# %%
+
+discriminator = RSigWGANTraining(
+                    x_train=data_train,
+                    x_val=data_val,
+                    config=config,
+                    generator=generator,    
+                    device=device
+                )
+
 # %%
