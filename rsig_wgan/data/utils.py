@@ -26,6 +26,9 @@ def train_test_split(x: torch.tensor, ratio_train=0.2, ratio_val=0.1) -> torch.t
     x_test = x[indices_test]
     return x_train, x_val, x_test
 
+def to_numpy(x: torch.tensor) -> np.array:
+    return x.detach().cpu().numpy()
+
 def get_data(
     config: omegaconf.dictconfig.DictConfig
 ) -> torch.tensor:

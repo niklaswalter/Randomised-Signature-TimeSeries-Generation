@@ -15,5 +15,7 @@ dependencies:
   - pyyaml
   - jupyter
   - pathlib
+  - seaborn
+  - mlflow
   - pip: 
     - yfinance
