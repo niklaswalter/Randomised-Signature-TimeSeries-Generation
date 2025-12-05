@@ -18,7 +18,7 @@ ar:
   std: 1.0
 hyperparameters:
   learning_rate: 1e-4
-  gradient_steps: 10
+  gradient_steps: 5
   batch_size: 10000
   mc_num: 1000
 rsigw1: 
