@@ -2,6 +2,7 @@ import mlflow
 import mlflow.pytorch
 
 from rsig_wgan.config import activation_mapping
+from rsig_wgan.discriminator_models import RSigW1Metric
 from .metrics import cov_diff, acf_diff
 from .utils import plot_data_test
 
@@ -38,6 +39,18 @@ class Evaluator:
         self.acf_train_error = acf_diff(self.x_train, self.x_fake, lag=self.n_lags // 2)
         self.acf_test_error = acf_diff(self.x_test, self.x_fake, lag=self.n_lags // 2)
 
+        self.metric_test = RSigW1Metric(
+                            x_real=self.x_test,    
+                            config=config,
+                            A1=self.training.A1,
+                            A2=self.training.A2, 
+                            xi1=self.training.xi1, 
+                            xi2=self.training.xi2, 
+                            terminal_diff=True, 
+                            device=device
+                        )
+        
+        self.training_metric_loss = self.metric_test(self.x_fake)
 
     def log_to_mlflow(self):
         with mlflow.start_run():
@@ -51,6 +64,7 @@ class Evaluator:
             mlflow.log_param("time-steps", self.n_lags)
             mlflow.log_param("batch size", self.batch_size)
 
+            mlflow.log_metric("training metric on test", self.training_metric_loss)
             mlflow.log_metric("corr-error-train", self.corr_train_error)
             mlflow.log_metric("corr-error-test", self.corr_test_error)
             mlflow.log_metric("acf-error-train", self.acf_train_error)

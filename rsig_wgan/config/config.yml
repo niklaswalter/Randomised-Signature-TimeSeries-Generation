@@ -1,5 +1,5 @@
 timeseries: 
-  n_lags: 10
+  n_lags: 25
   data_dim: 1
   p: 6
   q: 10
@@ -44,5 +44,5 @@ discriminator:
   id: "RSigW1"
 others: 
   trainable_var: True
-  same_matrices: False
-  time_homogeneous_readout: False
+  same_matrices: True
+  time_homogeneous_readout: True

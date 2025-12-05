@@ -9,6 +9,7 @@ import torch
 from torch import optim
 from copy import deepcopy
 from tqdm import tqdm
+from typing import Union
 from rsig_wgan.config import activation_mapping
 
 from rsig_wgan.discriminator_models.utils import l2_dist
@@ -121,7 +122,11 @@ class RSigWGANTraining:
         x_val: torch.tensor,
         generator,
         config,
-        device: str
+        device: str,
+        A1: Union[torch.tensor, None],
+        A2: Union[torch.tensor, None],
+        xi1: Union[torch.tensor, None],
+        xi2: Union[torch.tensor, None]
     ):
         self.x_train = x_train
         self.x_val = x_val
@@ -137,10 +142,8 @@ class RSigWGANTraining:
         self.activation = config.neural_sde.activation
         self.device = device
 
-        self.A1 = torch.randn(self.res_dim, self.res_dim).to(self.device)
-        self.A2 = torch.randn(self.data_dim, self.res_dim, self.res_dim).to(self.device)
-        self.xi1 = torch.randn(self.res_dim, 1).to(self.device)
-        self.xi2 = torch.randn(self.data_dim, self.res_dim, 1).to(self.device)
+        self.A1, self.A2 = A1, A2
+        self.xi1, self.xi2 = xi1, xi2
 
         self.train_losses_history = defaultdict(list)
         self.val_losses_history = defaultdict(list)
