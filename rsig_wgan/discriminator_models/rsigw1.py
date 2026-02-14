@@ -12,30 +12,9 @@ from tqdm import tqdm
 from typing import Union, Callable
 from loguru import logger
 from rsig_wgan.config import ACTIVATION_REGISTRY
+from rsig_wgan.utils import compute_rsig
 
 from rsig_wgan.discriminator_models.utils import l2_dist
-
-"""
-Computes the randomised signature for an input path
-"""
-
-def compute_rsig(
-    path: torch.tensor,
-    A1: torch.tensor,
-    A2: torch.tensor,
-    xi1: torch.tensor,
-    xi2: torch.tensor,
-    res_dim: int,
-    activation: Callable,
-    device: str
-) -> torch.tensor:
-    rsig = torch.zeros([path.shape[0], res_dim, 1]).to(device)
-
-    for i in range(path.shape[1]):
-        rsig = (rsig + activation(A1 @ rsig + xi1)
-                + torch.sum(activation(A2 @ rsig.unsqueeze(-3) + xi2) @ path[:, i, :, None, None].to(device), axis=1))
-
-    return rsig
 
 
 class RSigW1Metric:
@@ -52,7 +31,6 @@ class RSigW1Metric:
         xi1: torch.tensor,
         xi2: torch.tensor,
         device: str,
-        terminal_diff: bool = True
     ):
         self.x_real = x_real
         self.res_dim = config.rsigw1.reservoir_dim_metric
@@ -65,15 +43,11 @@ class RSigW1Metric:
         self.name = "RSig-W1-Dist"
 
         self.expected_rsig_real = compute_rsig(self.x_real, self.A1, self.A2, self.xi1, self.xi2, self.res_dim,
-                                                   self.activation).mean(0).to(self.device)
+                                                   self.activation, self.device).mean(0).to(self.device)
 
     def __call__(self, x_fake: torch.tensor) -> float:
-        if self.terminal_diff:
-            expected_rsig_fake = compute_rsig_td(x_fake, self.A1, self.A2, self.xi1, self.xi2, self.res_dim,
-                                                 self.activation, self.device).mean(0).to(self.device)
-        else:
-            expected_rsig_fake = compute_rsig(x_fake, self.A1, self.A2, self.xi1, self.xi2, self.res_dim,
-                                              self.activation).mean(0).to(self.device)
+        expected_rsig_fake = compute_rsig(x_fake, self.A1, self.A2, self.xi1, self.xi2, self.res_dim,
+                                              self.activation, self.device).mean(0).to(self.device)
 
         return l2_dist(self.expected_rsig_real, expected_rsig_fake)
 

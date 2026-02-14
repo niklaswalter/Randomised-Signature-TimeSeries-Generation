@@ -19,7 +19,7 @@ class NeuralSDEGenerator(GeneratorBase):
         super().__init__(config.neural_sde.input_dim, config.timeseries.data_dim)
         self.reservoir_dim = config.neural_sde.reservoir_dim_gen
         self.brownian_dim = config.neural_sde.brownian_dim
-        self.activation = activation_mapping[config.neural_sde.activation]
+        self.activation = ACTIVATION_REGISTRY[config.neural_sde.activation]
         self.hidden_dim = config.neural_sde.hidden_dim
         self.device = device
 

@@ -1,5 +1,6 @@
 # %% 
 import torch
+import os
 from rsig_wgan.config import load_config
 from rsig_wgan.data import get_data
 from rsig_wgan.generator_models import NeuralSDEGenerator

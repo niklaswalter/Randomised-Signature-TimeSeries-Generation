@@ -44,27 +44,6 @@ def compute_rsig(path: torch.tensor, A1: torch.tensor, A2: torch.tensor, xi1: to
 
 
 # -----------------------------------------------------------
-# Implements the linear regression approximation of the
-# future reservoir from the past reservoir
-# -----------------------------------------------------------
-
-def lr_rsig(x_future: torch.tensor, x_past: torch.tensor, A1: torch.tensor, A2: torch.tensor, xi1: torch.tensor,
-            xi2: torch.tensor, dim: int, activation, terminal=True):
-    if terminal:
-        reservoir_future = (compute_rsig_terminal(x_future, A1, A2, xi1, xi2, dim, activation).
-                            reshape([x_future.shape[0], dim]))
-        reservoir_past = (compute_rsig_terminal(x_past, A1, A2, xi1, xi2, dim, activation).
-                          reshape([x_past.shape[0], dim]))
-    else:
-        reservoir_future = compute_rsig(x_future, A1, A2, xi1, xi2, dim, activation).reshape([x_future.shape[0], dim])
-        reservoir_past = compute_rsig(x_past, A1, A2, xi1, xi2, dim, activation).reshape([x_past.shape[0], dim])
-    X, y = to_numpy(reservoir_past), to_numpy(reservoir_future)
-    lr = LinearRegression(fit_intercept=True)
-    lr.fit(X, y)
-    return torch.from_numpy(lr.predict(X)).float()
-
-
-# -----------------------------------------------------------
 # Implements the Conditional RSig-Wasserstein1 metric
 # -----------------------------------------------------------
 
