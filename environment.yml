@@ -18,7 +18,7 @@ dependencies:
   - pre-commit
   - pathlib
   - seaborn
-  - black
+  - ruff
   - isort
   - loguru
   - mlflow=3.8.0

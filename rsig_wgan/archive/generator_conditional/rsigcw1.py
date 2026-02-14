@@ -6,9 +6,7 @@ corresponding training procedure of the generator
 from collections import defaultdict
 from copy import deepcopy
 
-import sklearn
 import torch
-from sklearn.linear_model import LinearRegression
 from torch import optim
 from tqdm import tqdm
 from utils import *

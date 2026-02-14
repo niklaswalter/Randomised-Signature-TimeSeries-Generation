@@ -2,8 +2,6 @@
 Main file for model training
 """
 
-import config
-import generators
 from config import *
 from data import *
 from evaluation import *

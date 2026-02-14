@@ -15,7 +15,7 @@ def load_config() -> dict[str, Any]:
         config = OmegaConf.load(Path(__file__).parent / "config.yml")
         return config
     except FileNotFoundError:
-        print(f"Error: The file at config.yml was not found.")
+        print("Error: The file at config.yml was not found.")
         return None
     except yaml.YAMLError as e:
         print(f"Error reading YAML file: {e}")

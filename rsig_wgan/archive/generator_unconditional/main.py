@@ -2,8 +2,6 @@
 Main file for model training
 """
 
-import config
-import generators
 import torch
 from config import *
 from evaluation import *

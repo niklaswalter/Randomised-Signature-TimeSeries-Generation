@@ -5,7 +5,7 @@ training procedure of the generator
 
 from collections import defaultdict
 from copy import deepcopy
-from typing import Callable, Union
+from typing import Union
 
 import torch
 from loguru import logger
@@ -42,12 +42,28 @@ class RSigW1Metric:
         self.device = device
         self.name = "RSig-W1-Dist"
 
-        self.expected_rsig_real = compute_rsig(self.x_real, self.A1, self.A2, self.xi1, self.xi2, self.res_dim,
-                                                   self.activation, self.device).mean(0).to(self.device)
+        self.expected_rsig_real = compute_rsig(
+            self.x_real,
+            self.A1,
+            self.A2,
+            self.xi1,
+            self.xi2,
+            self.res_dim,
+            self.activation,
+            self.device
+        ).mean(0).to(self.device)
 
     def __call__(self, x_fake: torch.tensor) -> float:
-        expected_rsig_fake = compute_rsig(x_fake, self.A1, self.A2, self.xi1, self.xi2, self.res_dim,
-                                              self.activation, self.device).mean(0).to(self.device)
+        expected_rsig_fake = compute_rsig(
+            x_fake,
+            self.A1,
+            self.A2,
+            self.xi1,
+            self.xi2,
+            self.res_dim,
+            self.activation,
+            self.device
+        ).mean(0).to(self.device)
 
         return l2_dist(self.expected_rsig_real, expected_rsig_fake)
 
@@ -108,7 +124,11 @@ class RSigWGANTraining:
                             terminal_diff=True, 
                             device=device
                         )
-        self.scheduler = optim.lr_scheduler.StepLR(optimizer=self.generator_optim, gamma=0.95, step_size=128)
+        self.scheduler = optim.lr_scheduler.StepLR(
+            optimizer=self.generator_optim,
+            gamma=0.95,
+            step_size=128
+        )
 
     """
     Method to fit model using Adam optimiser

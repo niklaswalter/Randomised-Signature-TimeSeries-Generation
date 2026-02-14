@@ -7,7 +7,6 @@ import sys
 from datetime import datetime
 
 import matplotlib.pyplot as plt
-import numpy as np
 import seaborn as sns
 import torch
 from rsigw1 import *

@@ -3,5 +3,5 @@ repos:
     rev: 6.1.0
     hooks:
       - id: isort
-        language_version: python3
-        additional_dependencies: []
+        args: [--profile=black, --line-length=88]
+  
