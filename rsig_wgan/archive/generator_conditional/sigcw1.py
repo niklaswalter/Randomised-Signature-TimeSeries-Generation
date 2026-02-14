@@ -7,15 +7,16 @@ https://github.com/SigCGANs/Conditional-Sig-Wasserstein-GANs
 """
 
 
-import signatory
-import torch
-from torch import optim
 import math
-from tqdm import tqdm
 from collections import defaultdict
 from copy import deepcopy
+
+import signatory
 import sklearn
+import torch
 from sklearn.linear_model import LinearRegression
+from torch import optim
+from tqdm import tqdm
 from utils import *
 
 

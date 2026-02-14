@@ -1,8 +1,10 @@
-import yaml
-import torch.nn as nn
-from typing import Any
 from pathlib import Path
+from typing import Any
+
+import torch.nn as nn
+import yaml
 from omegaconf import OmegaConf
+
 
 def load_config() -> dict[str, Any]:
     """

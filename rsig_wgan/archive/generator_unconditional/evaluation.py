@@ -4,11 +4,12 @@ Defines the evaluation environment
 
 import os
 import sys
-import torch
-import matplotlib.pyplot as plt
-import seaborn as sns
-import numpy as np
 from datetime import datetime
+
+import matplotlib.pyplot as plt
+import numpy as np
+import seaborn as sns
+import torch
 from rsigw1 import *
 from sigw1 import *
 from utils import *

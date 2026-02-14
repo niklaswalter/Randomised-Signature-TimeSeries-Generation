@@ -2,10 +2,11 @@
 Contains helper functions
 """
 
+from typing import Any
+
+import numpy as np
 import torch
 import torch.nn as nn
-import numpy as np
-from typing import Any
 from scipy import stats
 
 

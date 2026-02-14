@@ -1,7 +1,9 @@
-import torch
 import numpy as np
+import torch
+
 from rsig_wgan.data import to_numpy
 from rsig_wgan.discriminator_models import l2_dist
+
 
 def cov(x, rowvar=False, bias=True, ddof=None, aweights=None):
     x = to_numpy(x)

@@ -2,11 +2,12 @@
 Implements data loading environment
 """
 
-import torch
 import math
+
 import numpy as np
-import yfinance as yf
 import pandas as pd
+import torch
+import yfinance as yf
 from utils import *
 
 

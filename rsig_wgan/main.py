@@ -1,11 +1,13 @@
 # %% 
-import torch
 import os
+
+import torch
+
 from rsig_wgan.config import load_config
 from rsig_wgan.data import get_data
-from rsig_wgan.generator_models import NeuralSDEGenerator
 from rsig_wgan.discriminator_models import RSigWGANTraining
 from rsig_wgan.evaluator import Evaluator
+from rsig_wgan.generator_models import NeuralSDEGenerator
 
 # %% 
 config = load_config()

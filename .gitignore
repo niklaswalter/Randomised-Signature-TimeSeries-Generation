@@ -1,3 +1,5 @@
 /rsig_wgan/mlruns
 /rsig_wgan/plots
 __pycache__/
+*.pyc
+*.pyo

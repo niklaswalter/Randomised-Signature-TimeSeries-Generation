@@ -1,11 +1,12 @@
-import torch
-from tqdm import tqdm
 from collections import defaultdict
 from copy import deepcopy
+
+import torch
 from torch import optim
+from tqdm import tqdm
 
 from rsig_wgan.config import ACTIVATION_REGISTRY
-from rsig_wgan.utils import lr_rsig, compute_rsig, sample_indices
+from rsig_wgan.utils import compute_rsig, lr_rsig, sample_indices
 
 
 class RSigCW1Metric:

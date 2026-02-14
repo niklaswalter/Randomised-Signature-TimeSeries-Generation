@@ -1,9 +1,12 @@
+from typing import Union
+
+import omegaconf
 import torch
 import torch.nn as nn
-import omegaconf
-from typing import Union
+
 from rsig_wgan.config import ACTIVATION_REGISTRY
 from rsig_wgan.utils import compute_rsig
+
 from .base import GeneratorBase
 
 

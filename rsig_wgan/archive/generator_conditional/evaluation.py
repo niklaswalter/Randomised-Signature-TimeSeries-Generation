@@ -4,12 +4,14 @@ Defines the evaluation environment
 
 import os
 import sys
-import torch
+from datetime import datetime
+
 import matplotlib.pyplot as plt
 import seaborn as sns
-from datetime import datetime
+import torch
 from rsigcw1 import *
 from utils import *
+
 
 class Evaluation:
     def __init__(self, training, x_train, x_test, scaler, generator_id, discriminator_id, activation_id, data_type):

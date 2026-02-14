@@ -15,8 +15,11 @@ dependencies:
   - hydra-core
   - pyyaml
   - jupyter
+  - pre-commit
   - pathlib
   - seaborn
+  - black
+  - isort
   - loguru
   - mlflow=3.8.0
   - pip: 

@@ -1,6 +1,8 @@
-import torch 
 from typing import Callable
+
+import torch
 from sklearn.linear_model import LinearRegression
+
 
 def compute_rsig(
     path: torch.tensor,

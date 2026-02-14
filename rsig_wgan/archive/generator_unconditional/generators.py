@@ -4,11 +4,13 @@ This file contains the setup of the implemented generator models:
     - LSTM
 """
 
+from typing import Tuple
+
 import torch
 import torch.nn as nn
-from typing import Tuple
 from config import *
 from torch.types import Device
+
 
 class GeneratorBase(nn.Module):
     def __init__(self, input_dim: int, output_dim: int):

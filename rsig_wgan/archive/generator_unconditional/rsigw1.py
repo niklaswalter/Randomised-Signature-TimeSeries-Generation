@@ -4,12 +4,11 @@ training procedure of the generator
 """
 
 from collections import defaultdict
+from copy import deepcopy
 
 import torch
 from torch import optim
-from copy import deepcopy
 from tqdm import tqdm
-
 from utils import *
 
 """

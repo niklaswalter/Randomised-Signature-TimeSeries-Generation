@@ -1,6 +1,7 @@
 import numpy as np
 import torch
 
+
 def to_numpy(x: torch.tensor) -> np.array:
     return x.detach().cpu().numpy()
 

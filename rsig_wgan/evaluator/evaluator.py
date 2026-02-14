@@ -1,10 +1,12 @@
+import os
+
 import mlflow
 import mlflow.pytorch
-import os
 
 from rsig_wgan.config import ACTIVATION_REGISTRY
 from rsig_wgan.discriminator_models import RSigW1Metric
-from .metrics import cov_diff, acf_diff
+
+from .metrics import acf_diff, cov_diff
 from .utils import plot_data_test
 
 

@@ -1,4 +1,4 @@
-from .data import * 
+from .data import *
 from .scaling import *
 from .utils import *
 

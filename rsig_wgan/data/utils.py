@@ -1,13 +1,9 @@
-import torch
-import omegaconf
 import numpy as np
+import omegaconf
+import torch
 
-from .data import (
-    BrownianMotion,
-    SP500,
-    AutoregressiveProcess,
-    FOREX
-)
+from .data import FOREX, SP500, AutoregressiveProcess, BrownianMotion
+
 
 def sample_indices(dataset_size, batch_size: int) -> torch.tensor:
     indices = torch.from_numpy(np.random.choice(dataset_size, size=batch_size, replace=False))

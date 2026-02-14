@@ -1,6 +1,7 @@
 import torch.nn as nn
 from torch.types import Device
 
+
 class GeneratorBase(nn.Module):
     def __init__(self, input_dim: int, output_dim: int):
         super(GeneratorBase, self).__init__()

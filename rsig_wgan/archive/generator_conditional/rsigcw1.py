@@ -3,15 +3,15 @@ Implements the conditional RSig-Wasserstein-1 metric and the
 corresponding training procedure of the generator
 """
 
-import torch
-from tqdm import tqdm
 from collections import defaultdict
 from copy import deepcopy
-from torch import optim
-import sklearn
-from sklearn.linear_model import LinearRegression
-from utils import *
 
+import sklearn
+import torch
+from sklearn.linear_model import LinearRegression
+from torch import optim
+from tqdm import tqdm
+from utils import *
 
 # -----------------------------------------------------------------------------------------
 # Computation of the terminal difference of the randomised signature for an input path

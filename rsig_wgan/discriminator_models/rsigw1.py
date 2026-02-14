@@ -4,17 +4,17 @@ training procedure of the generator
 """
 
 from collections import defaultdict
+from copy import deepcopy
+from typing import Callable, Union
 
 import torch
-from torch import optim
-from copy import deepcopy
-from tqdm import tqdm
-from typing import Union, Callable
 from loguru import logger
-from rsig_wgan.config import ACTIVATION_REGISTRY
-from rsig_wgan.utils import compute_rsig
+from torch import optim
+from tqdm import tqdm
 
+from rsig_wgan.config import ACTIVATION_REGISTRY
 from rsig_wgan.discriminator_models.utils import l2_dist
+from rsig_wgan.utils import compute_rsig
 
 
 class RSigW1Metric:

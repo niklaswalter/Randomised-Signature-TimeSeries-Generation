@@ -1,10 +1,12 @@
-import torch
-import seaborn as sns
-import mlflow.pytorch
-import matplotlib.pyplot as plt
 from datetime import datetime
 
+import matplotlib.pyplot as plt
+import mlflow.pytorch
+import seaborn as sns
+import torch
+
 from rsig_wgan.data import to_numpy
+
 
 def load_model_from_mlflow(run_id: str, name: str):
     model_uri = f"runs:/{run_id}/{name}"

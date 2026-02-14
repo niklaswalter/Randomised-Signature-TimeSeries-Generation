@@ -2,15 +2,15 @@
 Main file for model training
 """
 
-from utils import *
-from rsigcw1 import *
-from sigcw1 import *
-from generators import *
-from evaluation import *
-from data import *
-from config import *
 import config
 import generators
+from config import *
+from data import *
+from evaluation import *
+from generators import *
+from rsigcw1 import *
+from sigcw1 import *
+from utils import *
 
 
 def get_generator(id):

@@ -2,16 +2,16 @@
 Main file for model training
 """
 
-import torch
-from utils import *
-from rsigw1 import *
-from sigw1 import *
-from generators import *
-from evaluation import *
-from src.data.data import *
-from config import *
 import config
 import generators
+import torch
+from config import *
+from evaluation import *
+from generators import *
+from rsigw1 import *
+from sigw1 import *
+from src.data.data import *
+from utils import *
 
 
 def get_generator(name):

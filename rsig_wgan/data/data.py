@@ -6,13 +6,15 @@ Implements data loading environment for following data types:
     - FOREX EUR/USD log-returns
 """
 
-import torch
 import math
+from pathlib import Path
+
 import numpy as np
 import pandas as pd
+import torch
 import yfinance as yf
-from pathlib import Path
-from .scaling import Standardiser, IDScaler
+
+from .scaling import IDScaler, Standardiser
 
 
 class Data:
