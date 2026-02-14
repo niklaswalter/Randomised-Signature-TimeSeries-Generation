@@ -1,8 +1,7 @@
-Metadata-Version: 2.2
+Metadata-Version: 2.4
 Name: rsig_gen
 Version: 0.0.0
 Summary: Package for time-series generation using randomised signature
-License: BSD 3-Clause License
 Description-Content-Type: text/markdown
 
 # Randomised Signature Timeseries Generation

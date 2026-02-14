@@ -4,18 +4,20 @@ channels:
   - conda-forge
   - defaults
 dependencies:
-  - python=3.9.0
+  - python>=3.11.0
   - numpy
   - pandas
   - matplotlib
-  - pytorch=1.11.0
-  - scipy=1.5.2
+  - pytorch
+  - scipy
   - tqdm
+  - pip
   - hydra-core
   - pyyaml
   - jupyter
   - pathlib
   - seaborn
+  - loguru
   - mlflow
   - pip: 
     - yfinance

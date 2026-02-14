@@ -2,7 +2,7 @@ import torch
 import torch.nn as nn
 import omegaconf
 from typing import Union
-from rsig_wgan.config import activation_mapping
+from rsig_wgan.config import ACTIVATION_REGISTRY
 from .base import GeneratorBase
 
 

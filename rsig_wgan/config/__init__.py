@@ -19,7 +19,7 @@ def load_config() -> dict[str, Any]:
         print(f"Error reading YAML file: {e}")
         return None
     
-activation_mapping = {"Sigmoid": nn.Sigmoid(), "Tanh": nn.Tanh()}
+ACTIVATION_REGISTRY = {"Sigmoid": nn.Sigmoid(), "Tanh": nn.Tanh()}
     
-__all__ = ["load_config", "activation_mapping"]
+__all__ = ["load_config", "ACTIVATION_REGISTRY"]
 
