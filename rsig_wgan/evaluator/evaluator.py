@@ -79,7 +79,7 @@ class Evaluator:
         return [p_val_normaltest(self.x_fake, i) for i in range(1, self.n_lags)]
 
     def log_to_mlflow(self):
-        os.environ["MLFLOW_TRACKING_URI"] = self.config.mlflow.tracking_uri
+        os.environ.setdefault("MLFLOW_TRACKING_URI", self.config.mlflow.tracking_uri)
         mlflow.set_experiment(self.config.mlflow.experiment_name)
         model_name = f"{self.generator_id}-{self.discriminator_id}-{self.n_lags}"
 

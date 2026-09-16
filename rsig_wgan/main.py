@@ -132,7 +132,6 @@ def main():
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
     if config.discriminator.id in CONDITIONAL_DISCRIMINATORS:
-        # the conditional models split each path into a past of p and a future of q steps
         expected_lags = config.timeseries.p + config.timeseries.q
         if config.timeseries.n_lags != expected_lags:
             raise ValueError(

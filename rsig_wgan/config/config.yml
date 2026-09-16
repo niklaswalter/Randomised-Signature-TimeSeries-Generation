@@ -1,5 +1,5 @@
 mlflow:
-  tracking_uri: "/Users/privateuser/Documents/Documents - Niklas Walter's MacBook Pro/src/mlflow"
+  tracking_uri: "./mlruns"
   experiment_name: "RSIG-Generator-Test"
 
 timeseries: 

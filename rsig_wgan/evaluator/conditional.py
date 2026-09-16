@@ -157,7 +157,7 @@ class ConditionalEvaluator:
         return torch.norm(predicted - realised, p=2, dim=1).mean()
 
     def log_to_mlflow(self):
-        os.environ["MLFLOW_TRACKING_URI"] = self.config.mlflow.tracking_uri
+        os.environ.setdefault("MLFLOW_TRACKING_URI", self.config.mlflow.tracking_uri)
         mlflow.set_experiment(self.config.mlflow.experiment_name)
         model_name = f"{self.generator_id}-{self.discriminator_id}-{self.p}-{self.q}"
 
