@@ -1,6 +1,7 @@
 """
 Implements data loading environment for following data types:
     - Brownian motion
+    - Geometric Brownian motion
     - AR(1) process
     - S&P500 log-returns
     - FOREX EUR/USD log-returns
