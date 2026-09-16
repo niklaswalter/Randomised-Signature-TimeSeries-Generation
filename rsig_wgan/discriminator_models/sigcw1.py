@@ -14,7 +14,7 @@ from sklearn.linear_model import LinearRegression
 from torch import optim
 from tqdm import tqdm
 
-from rsig_wgan.utils import sample_indices, to_numpy
+from rsig_wgan.utils import generate_in_chunks, sample_indices, to_numpy
 
 from .sigw1 import apply_augmentations
 
@@ -111,7 +111,7 @@ class SigCWGANTraining:
     """
 
     def __init__(self, x_train, x_val, batch_size, generator, p, q, mc_num, num_grad_steps, learning_rate,
-                 trunc, device, augmented=True):
+                 trunc, device, augmented=True, past_chunk=None):
 
         self.p = p
         self.q = q
@@ -129,6 +129,7 @@ class SigCWGANTraining:
         self.generator_optim = optim.Adam(self.generator.parameters(), lr=self.learning_rate)
         self.trunc = trunc
         self.augmented = augmented
+        self.past_chunk = past_chunk
 
         self.train_losses_history = defaultdict(list)
         self.val_losses_history = defaultdict(list)
@@ -160,12 +161,9 @@ class SigCWGANTraining:
         for j in tqdm(range(self.num_grad_steps)):
             self.generator_optim.zero_grad()
             sig_pred, x_past = self.sample_batch()
-            x = torch.empty([self.mc_num, self.q, 1], device=self.device)
-            for sample in x_past:
-                x_fake = self.generator(self.mc_num, self.q, sample.reshape(1, self.p, 1)).to(self.device)
-                x = torch.cat([x, x_fake], dim=0)
+            x = generate_in_chunks(self.generator, self.mc_num, self.q, x_past, self.past_chunk).to(self.device)
 
-            sig_fake = compute_sig(x[self.mc_num:], self.trunc, self.device, self.augmented)
+            sig_fake = compute_sig(x, self.trunc, self.device, self.augmented)
             sig_fake_mc = sig_fake.reshape(self.batch_size, self.mc_num, -1).mean(1)
 
             loss = torch.norm(sig_pred - sig_fake_mc, p=2, dim=1).mean()

@@ -11,7 +11,8 @@ import torch
 
 from rsig_wgan.config import ACTIVATION_REGISTRY
 from rsig_wgan.discriminator_models.sigcw1 import compute_sig, fit_lr_sig, predict_lr_sig
-from rsig_wgan.utils import compute_rsig, fit_lr_rsig, predict_lr_rsig, sample_indices
+from rsig_wgan.utils import (compute_rsig, fit_lr_rsig, generate_in_chunks, predict_lr_rsig,
+                             sample_indices)
 
 from .metrics import acf_diff, cov_diff
 from .utils import plot_conditional_paths
@@ -51,6 +52,7 @@ class ConditionalEvaluator:
         self.p = config.timeseries.p
         self.q = config.timeseries.q
         self.mc_num = config.hyperparameters.mc_num
+        self.past_chunk = config.hyperparameters.past_chunk
         self.n_eval = config.conditional_evaluation.n_eval
         self.samples_per_past = config.conditional_evaluation.samples_per_past
 
@@ -112,20 +114,16 @@ class ConditionalEvaluator:
         which says nothing about the conditional law.
         """
         n = samples_per_past or self.samples_per_past
-        paths = [self.best_generator(n, self.q, past.reshape(1, self.p, 1)).to(self.device) for past in x_past]
-        return torch.cat(paths, dim=0)
+        return generate_in_chunks(self.best_generator, n, self.q, x_past, self.past_chunk).to(self.device)
 
     def conditional_moments(self, x_past, samples_per_past=None):
         """
         Mean and standard deviation of the generated futures for each past, shape
         """
         n = samples_per_past or self.samples_per_past
-        means, stds = [], []
-        for past in x_past:
-            fakes = self.best_generator(n, self.q, past.reshape(1, self.p, 1)).to(self.device)
-            means.append(fakes.mean(0).reshape(-1))
-            stds.append(fakes.std(0).reshape(-1))
-        return torch.stack(means), torch.stack(stds)
+        fakes = generate_in_chunks(self.best_generator, n, self.q, x_past, self.past_chunk).to(self.device)
+        fakes = fakes.reshape(x_past.shape[0], n, self.q)
+        return fakes.mean(1), fakes.std(1)
 
     def brownian_conditional_error(self, x_past, samples_per_past=None):
         """
@@ -146,9 +144,8 @@ class ConditionalEvaluator:
         """
         Monte-Carlo estimate of the conditional expected (randomised) signature per past.
         """
-        fakes = [self.best_generator(self.mc_num, self.q, past.reshape(1, self.p, 1)).to(self.device)
-                 for past in x_past]
-        features = self.features(torch.cat(fakes, dim=0))
+        fakes = generate_in_chunks(self.best_generator, self.mc_num, self.q, x_past, self.past_chunk).to(self.device)
+        features = self.features(fakes)
         return features.reshape(x_past.shape[0], self.mc_num, -1).mean(1)
 
     def conditional_error(self, x_past):

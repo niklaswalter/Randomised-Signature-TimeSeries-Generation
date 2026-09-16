@@ -6,7 +6,7 @@ from torch import optim
 from tqdm import tqdm
 
 from rsig_wgan.config import ACTIVATION_REGISTRY
-from rsig_wgan.utils import compute_rsig, lr_rsig, sample_indices
+from rsig_wgan.utils import compute_rsig, generate_in_chunks, lr_rsig, sample_indices
 
 
 class RSigCW1Metric:
@@ -54,7 +54,7 @@ class RSigCWGANTraining:
     Class for training procedure with RSig-CW1 discriminator
     """
     def __init__(self, x_train, x_val, batch_size, generator, p, q, dim_res, mc_num, num_grad_steps, learning_rate,
-                 activation, device, A1, A2, xi1, xi2, terminal=True):
+                 activation, device, A1, A2, xi1, xi2, terminal=True, past_chunk=None):
 
         self.p = p
         self.q = q
@@ -81,6 +81,7 @@ class RSigCWGANTraining:
         self.val_losses_history = defaultdict(list)
         self.device = device
         self.terminal = terminal
+        self.past_chunk = past_chunk
 
         self.res_estimate = lr_rsig(self.x_train_future, self.x_train_past, self.A1, self.A2, self.xi1, self.xi2,
                                     self.dim_res, self.activation, self.device)
@@ -107,11 +108,8 @@ class RSigCWGANTraining:
         for j in tqdm(range(self.num_grad_steps)):
             self.generator_optim.zero_grad()
             rsig_pred, x_past = self.sample_batch()
-            x = torch.empty([self.mc_num, self.q, 1], device=self.device)
-            for sample in x_past:
-                x_fake = self.generator(self.mc_num, self.q, sample.reshape(1, self.p, 1)).to(self.device)
-                x = torch.cat([x, x_fake], dim=0)
-            rsig_fake = compute_rsig(x[self.mc_num:, :, :], self.A1, self.A2, self.xi1, self.xi2,
+            x = generate_in_chunks(self.generator, self.mc_num, self.q, x_past, self.past_chunk).to(self.device)
+            rsig_fake = compute_rsig(x, self.A1, self.A2, self.xi1, self.xi2,
                                                   self.dim_res, self.activation, self.device)
             rsig_fake_mc = rsig_fake.reshape(self.batch_size, self.mc_num, self.dim_res).mean(1)
 

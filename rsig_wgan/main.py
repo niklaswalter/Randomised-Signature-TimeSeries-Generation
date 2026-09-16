@@ -93,7 +93,8 @@ def get_training(config, generator, x_train, x_val, device, A1, A2, xi1, xi2):
             A1=A1,
             A2=A2,
             xi1=xi1,
-            xi2=xi2
+            xi2=xi2,
+            past_chunk=config.hyperparameters.past_chunk
         )
     elif config.discriminator.id == "SigCW1":
         return SigCWGANTraining(
@@ -108,7 +109,8 @@ def get_training(config, generator, x_train, x_val, device, A1, A2, xi1, xi2):
             learning_rate=config.hyperparameters.learning_rate,
             trunc=config.sigcw1.truncation_depth,
             device=device,
-            augmented=config.sigcw1.augmented
+            augmented=config.sigcw1.augmented,
+            past_chunk=config.hyperparameters.past_chunk
         )
     raise ValueError(f"Unknown discriminator id: {config.discriminator.id}")
 

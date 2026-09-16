@@ -97,30 +97,37 @@ class ConditionalNeuralSDEGenerator(GeneratorBase):
         return R
 
     def forward(self, batch_size: int, n_lags: int, x_past: torch.tensor, device: str = None) -> torch.tensor:
+        """
+        :param batch_size: number of draws per conditioning path
+        :param x_past: one or more conditioning paths
+        :return: rows grouped as [past_0 x batch_size, past_1 x batch_size, ...]
+        """
         device = device or self.device
-        V = torch.randn(batch_size, self.noise_input_dim, device = device)
+        n_past = x_past.shape[0]
+        total = n_past * batch_size
+
+        rsig_cond = compute_rsig(x_past, self.A1, self.A2, self.xi1, self.xi2, self.reservoir_dim,
+                                 self.activation, self.device).reshape(n_past, -1).to(device)
+        rsig_cond = self.hidden_layer_init_2(rsig_cond)
+        rsig_cond = self.activation(rsig_cond)
+        rsig_cond = self.output_layer_init_2(rsig_cond).reshape(
+            n_past, self.reservoir_dim - self.initial_noise_dim, 1)
+        # repeat_interleave keeps each past's draws contiguous, which is the grouping the
+        # Monte-Carlo average relies on; repeat would tile and silently mix pasts
+        rsig_cond = rsig_cond.repeat_interleave(batch_size, dim=0)
+
+        V = torch.randn(total, self.noise_input_dim, device=device)
         V = self.hidden_layer_init_1(V)
         V = self.activation(V)
         V = self.output_layer_init_1(V)
-        V = torch.reshape(V, (batch_size, self.initial_noise_dim, 1))
+        V = torch.reshape(V, (total, self.initial_noise_dim, 1))
 
-        rsig_cond = (compute_rsig(x_past, self.A1, self.A2, self.xi1, self.xi2, self.reservoir_dim, self.activation, self.device).
-                     reshape(1, -1)).to(device)
-        rsig_cond = self.hidden_layer_init_2(rsig_cond)
-        rsig_cond = self.activation(rsig_cond)
-        rsig_cond = self.output_layer_init_2(rsig_cond).reshape(1, self.reservoir_dim - self.initial_noise_dim, 1)
-        rsig_cond = rsig_cond.repeat(batch_size, 1, 1).requires_grad_()
-
-        increments = torch.randn(batch_size, n_lags, self.brownian_dim, device = device)
+        increments = torch.randn(total, n_lags, self.brownian_dim, device=device)
         W = torch.cumsum(increments, 1)
         W[:, 0, :] = 0.0
 
         R = self.solve_conditional_neural_sde(rsig_cond, V, W)
 
-        for n in range(n_lags):
-            if n == 0:
-                x = self.readout(R[:, n].reshape(R[:, n].shape[0], -1))
-            else:
-                x = torch.cat((x, self.readout(R[:, n].reshape(R[:, n].shape[0], -1))), 1)
-
+        readouts = [self.readout(R[:, n].reshape(R[:, n].shape[0], -1)) for n in range(n_lags)]
+        x = torch.cat(readouts, 1)
         return x.reshape(x.shape[0], x.shape[1], 1)
