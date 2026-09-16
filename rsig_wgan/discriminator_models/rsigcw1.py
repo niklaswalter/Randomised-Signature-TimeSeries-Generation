@@ -38,12 +38,12 @@ class RSigCW1Metric:
         self.x_real_past = x_real[:, :self.p, :].to(self.device)
         self.x_real_future = x_real[:, self.p:, :].to(self.device)
 
-        self.res_estimate = lr_rsig(self.x_real_future, self.x_real_past, self.A1, self.A2, self.xi1, self.xi2, self.N,
-                                    self.activation)[self.indices].clone()
+        self.res_estimate = lr_rsig(self.x_real_future, self.x_real_past, self.A1, self.A2, self.xi1, self.xi2,
+                                    self.res_dim, self.activation, self.device)[self.indices].clone()
         self.x_past_sample = self.x_real_past[self.indices].clone()
 
     def __call__(self, x_fake):
-        expected_reservoir_fake = compute_rsig(x_fake, self.A1, self.A2, self.xi1, self.xi2, self.N,
+        expected_reservoir_fake = compute_rsig(x_fake, self.A1, self.A2, self.xi1, self.xi2, self.res_dim,
                                                    self.activation, self.device).mean(0)
         loss = torch.norm(self.res_estimate - expected_reservoir_fake, p=2, dim=1).mean()
         return loss
@@ -54,7 +54,7 @@ class RSigCWGANTraining:
     Class for training procedure with RSig-CW1 discriminator
     """
     def __init__(self, x_train, x_val, batch_size, generator, p, q, dim_res, mc_num, num_grad_steps, learning_rate,
-                 activation, device, terminal=True):
+                 activation, device, A1, A2, xi1, xi2, terminal=True):
 
         self.p = p
         self.q = q
@@ -83,7 +83,7 @@ class RSigCWGANTraining:
         self.terminal = terminal
 
         self.res_estimate = lr_rsig(self.x_train_future, self.x_train_past, self.A1, self.A2, self.xi1, self.xi2,
-                                    self.dim_res, self.activation)
+                                    self.dim_res, self.activation, self.device)
 
         self.scheduler = optim.lr_scheduler.StepLR(optimizer=self.generator_optim, gamma=0.95, step_size=128)
         self.best_loss = None

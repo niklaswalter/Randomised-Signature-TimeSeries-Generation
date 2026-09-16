@@ -10,6 +10,7 @@ dependencies:
   - matplotlib
   - pytorch
   - scipy
+  - scikit-learn
   - tqdm
   - pip
   - hydra-core

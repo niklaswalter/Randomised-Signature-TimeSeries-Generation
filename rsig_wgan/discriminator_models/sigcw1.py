@@ -28,6 +28,37 @@ def compute_sig(x: torch.tensor, trunc: int, device: str, augmented: bool = True
     return signatory.signature(x.to(device), depth=trunc)
 
 
+def fit_lr_sig(
+    x_future: torch.tensor,
+    x_past: torch.tensor,
+    trunc: int,
+    device: str,
+    augmented: bool = True
+) -> LinearRegression:
+    """
+    Fit the conditional expectation of the future signature given the past one
+    """
+    X = to_numpy(compute_sig(x_past, trunc, device, augmented))
+    y = to_numpy(compute_sig(x_future, trunc, device, augmented))
+    estimator = LinearRegression(fit_intercept=True)
+    estimator.fit(X, y)
+    return estimator
+
+
+def predict_lr_sig(
+    estimator: LinearRegression,
+    x_past: torch.tensor,
+    trunc: int,
+    device: str,
+    augmented: bool = True
+) -> torch.tensor:
+    """
+    Apply a fitted estimator to pasts it was not fitted on
+    """
+    X = to_numpy(compute_sig(x_past, trunc, device, augmented))
+    return torch.from_numpy(estimator.predict(X)).float()
+
+
 def lr_sig(
     x_future: torch.tensor,
     x_past: torch.tensor,
@@ -35,15 +66,8 @@ def lr_sig(
     device: str,
     augmented: bool = True
 ) -> torch.tensor:
-    """
-    Least-squares estimate of the conditional expected signature of the future given the past
-    """
-    sig_future = compute_sig(x_future, trunc, device, augmented)
-    sig_past = compute_sig(x_past, trunc, device, augmented)
-    X, y = to_numpy(sig_past), to_numpy(sig_future)
-    lr = LinearRegression(fit_intercept=True)
-    lr.fit(X, y)
-    return torch.from_numpy(lr.predict(X)).float()
+    estimator = fit_lr_sig(x_future, x_past, trunc, device, augmented)
+    return predict_lr_sig(estimator, x_past, trunc, device, augmented)
 
 
 class SigCW1Metric:
