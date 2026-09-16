@@ -11,10 +11,6 @@ from rsig_wgan.data import to_numpy
 
 
 def resolve_tracking_uri(uri: str) -> str:
-    """
-    Resolve a relative tracking path against the project root rather than the working
-    directory, so runs accumulate in one place wherever training is launched from.
-    """
     if "://" in uri or os.path.isabs(uri):
         return uri
     return str((Path(__file__).resolve().parents[2] / uri).resolve())
