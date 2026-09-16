@@ -1,5 +1,4 @@
-/rsig_wgan/mlruns
-/rsig_wgan/plots
+mlruns/
+plots/
 __pycache__/
-*.pyc
-*.pyo
+*.py[cod]

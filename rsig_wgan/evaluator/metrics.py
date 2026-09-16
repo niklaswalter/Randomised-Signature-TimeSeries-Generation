@@ -1,5 +1,6 @@
 import numpy as np
 import torch
+from scipy import stats
 
 from rsig_wgan.data import to_numpy
 from rsig_wgan.discriminator_models import l2_dist
@@ -33,3 +34,8 @@ def acf(x, lag, dim=(0, 1)):
 
 def acf_diff(x_real, x_fake, lag, dim=(0, 1)):
     return l2_dist(acf(x_real, lag), acf(x_fake, lag))
+
+
+def p_val_normaltest(x_fake, timestep):
+    x_trunc = to_numpy(x_fake[:, timestep]).reshape(-1)
+    return stats.shapiro(x_trunc)[1]

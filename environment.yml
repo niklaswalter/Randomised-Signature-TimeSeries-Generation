@@ -16,7 +16,6 @@ dependencies:
   - pyyaml
   - jupyter
   - pre-commit
-  - pathlib
   - seaborn
   - ruff
   - isort

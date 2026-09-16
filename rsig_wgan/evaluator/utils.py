@@ -1,3 +1,4 @@
+import os
 from datetime import datetime
 
 import matplotlib.pyplot as plt
@@ -14,18 +15,19 @@ def load_model_from_mlflow(run_id: str, name: str):
     return model
 
 def plot_data_test(
-    x_test: torch.tensor, x_fake: torch.tensor, data_type: str
+    x_test: torch.tensor, x_fake: torch.tensor, data_type: str, num_paths: int = 50
 ) -> str:
     fig = plt.figure()
     ax = fig.add_subplot(111)
     sns.set_theme()
-    for i in range(x_test.shape[0]//100):
+    for i in range(min(num_paths, x_test.shape[0], x_fake.shape[0])):
         plt.plot(to_numpy(x_fake)[i], color="darkblue", linewidth=0.7)
         plt.plot(to_numpy(x_test)[i], color="dimgrey", linewidth=0.7)
     ax.set_title("Real and generated {} paths".format(data_type))
     ax.legend(["Fake", "Real"])
     ax.set_xlabel("Time")
-    plot_file_path = f"plots/test_fake_plot-{datetime.now()}.pdf"
+    os.makedirs("plots", exist_ok=True)
+    plot_file_path = "plots/test_fake_plot-{}.pdf".format(datetime.now().strftime("%d%m%Y-%H%M%S"))
     fig.savefig(plot_file_path)
     plt.close()
     return plot_file_path

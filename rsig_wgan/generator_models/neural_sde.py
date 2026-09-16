@@ -57,21 +57,30 @@ class NeuralSDEGenerator(GeneratorBase):
           # Dimension of generator and metric needs to be the same
           assert self.reservoir_dim == config.rsigw1.reservoir_dim_metric
 
-          self.B1, self.B2 = A1, A2
-          self.lambda1, self.lambda2 = xi1, xi2
+          B1, B2 = A1, A2
+          lambda1, lambda2 = xi1, xi2
         else:
-          self.B1, self.B2 = (torch.randn(self.reservoir_dim, self.reservoir_dim, device=self.device),
+          B1, B2 = (torch.randn(self.reservoir_dim, self.reservoir_dim, device=self.device),
                         torch.randn(self.brownian_dim, self.reservoir_dim, self.reservoir_dim, device=self.device))
 
-          self.lambda1, self.lambda2 = (torch.randn(self.reservoir_dim, 1, device=self.device),
+          lambda1, lambda2 = (torch.randn(self.reservoir_dim, 1, device=self.device),
                              torch.randn(self.brownian_dim, self.reservoir_dim, 1, device=self.device))
+
+        # buffers, so the untrained reservoir follows the module across .to(device);
+        # non-persistent to keep state_dict keys unchanged for existing checkpoints
+        self.register_buffer("B1", B1, persistent=False)
+        self.register_buffer("B2", B2, persistent=False)
+        self.register_buffer("lambda1", lambda1, persistent=False)
+        self.register_buffer("lambda2", lambda2, persistent=False)
 
         """
         Linear readout layer for the reservoir 
         """
 
         if config.others.time_homogeneous_readout:
-          self.readouts = [nn.Linear(self.reservoir_dim, self.output_dim, device=self.device)] * config.timeseries.n_lags
+          # one shared layer repeated: a plain list would leave it unregistered and untrained
+          shared_readout = nn.Linear(self.reservoir_dim, self.output_dim, device=self.device)
+          self.readouts = nn.ModuleList([shared_readout] * config.timeseries.n_lags)
         else:
           self.readouts = nn.ModuleList([nn.Linear(self.reservoir_dim, self.output_dim, device=self.device) for i in range(config.timeseries.n_lags)])
 

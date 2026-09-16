@@ -36,12 +36,21 @@ rsigw1:
 rsigcw1: 
   reservoir_dim_metric: 80
 
+sigw1:
+  truncation_depth: 4
+  normalise: True
+
 neural_sde:
   input_dim: 32
   hidden_dim: 32
   brownian_dim: 1
   reservoir_dim_gen: 80
   activation: "Sigmoid"
+
+lstm:
+  input_dim: 5
+  hidden_dim: 64
+  num_layers: 2
 
 cond_neural_sde:
   input_dim: 32

@@ -90,10 +90,10 @@ class RSigWGANTraining:
         self.batch_size = config.hyperparameters.batch_size
         self.n_lags = self.x_train.shape[1]
         self.generator = generator
-        self.generator_optim = optim.Adam(self.generator.parameters())
         self.best_generator = None
         self.num_grad_steps = config.hyperparameters.gradient_steps
         self.learning_rate = config.hyperparameters.learning_rate
+        self.generator_optim = optim.Adam(self.generator.parameters(), lr=self.learning_rate)
         self.res_dim = config.rsigw1.reservoir_dim_metric
         self.data_dim = config.timeseries.data_dim
         self.device = device
@@ -111,7 +111,6 @@ class RSigWGANTraining:
                             A2=self.A2, 
                             xi1=self.xi1, 
                             xi2=self.xi2, 
-                            terminal_diff=True, 
                             device=device
                         )
         self.metric_val = RSigW1Metric(
@@ -121,7 +120,6 @@ class RSigWGANTraining:
                             A2=self.A2, 
                             xi1=self.xi1, 
                             xi2=self.xi2, 
-                            terminal_diff=True, 
                             device=device
                         )
         self.scheduler = optim.lr_scheduler.StepLR(
@@ -143,7 +141,9 @@ class RSigWGANTraining:
             x_fake = self.generator(batch_size=self.batch_size, n_lags=self.n_lags)
             loss = self.metric(x_fake)
             loss.backward()
-            best_loss = loss.item() if j == 0 else best_loss
+            if j == 0:
+                best_loss = loss.item()
+                self.best_generator = deepcopy(self.generator.state_dict())
             if (j + 1) % 100 == 0:
                 val_loss = self.metric_val(x_fake)
                 self.val_losses_history["RSigW1Val"].append(val_loss.item())
