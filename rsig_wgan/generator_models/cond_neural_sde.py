@@ -20,12 +20,17 @@ class ConditionalNeuralSDEGenerator(GeneratorBase):
         xi1: Union[torch.tensor, None],
         xi2: Union[torch.tensor, None]
     ):
-        super().__init__(config.neural_sde.input_dim, config.timeseries.data_dim)
-        self.reservoir_dim = config.neural_sde.reservoir_dim_gen
-        self.brownian_dim = config.neural_sde.brownian_dim
-        self.activation = ACTIVATION_REGISTRY[config.neural_sde.activation]
-        self.hidden_dim = config.neural_sde.hidden_dim
+        super().__init__(config.cond_neural_sde.input_dim, config.timeseries.data_dim)
+        self.reservoir_dim = config.cond_neural_sde.reservoir_dim_gen
+        self.brownian_dim = config.cond_neural_sde.brownian_dim
+        self.activation = ACTIVATION_REGISTRY[config.cond_neural_sde.activation]
+        self.hidden_dim = config.cond_neural_sde.hidden_dim
         self.device = device
+
+        # the reservoir is initialised partly from noise and partly from the conditioning past
+        self.initial_noise_dim = config.cond_neural_sde.initial_noise_dim
+        self.noise_input_dim = self.input_dim
+        assert 0 < self.initial_noise_dim < self.reservoir_dim
 
 
         """
@@ -42,22 +47,27 @@ class ConditionalNeuralSDEGenerator(GeneratorBase):
         Sample random matrices and biases for conditional reservoir 
         """
 
-        self.rho1, self.rho2, self.rho3, self.rho4 = (nn.Parameter(torch.randn(1, 1)).to(self.device), nn.Parameter(torch.randn(1, 1)).to(self.device),
-                                                    nn.Parameter(torch.randn(1, 1)).to(self.device), nn.Parameter(torch.randn(1, 1)).to(self.device))
+        self.rho1, self.rho2, self.rho3, self.rho4 = (nn.Parameter(torch.randn(1, 1).to(self.device)), nn.Parameter(torch.randn(1, 1).to(self.device)),
+                                                    nn.Parameter(torch.randn(1, 1).to(self.device)), nn.Parameter(torch.randn(1, 1).to(self.device)))
 
 
         if config.others.same_matrices:
           # Dimension of generator and metric needs to be the same
           assert self.reservoir_dim == config.rsigw1.reservoir_dim_metric
 
-          self.B1, self.B2 = A1, A2
-          self.lambda1, self.lambda2 = xi1, xi2
+          B1, B2 = A1, A2
+          lambda1, lambda2 = xi1, xi2
         else:
-          self.B1, self.B2 = (torch.randn(self.reservoir_dim, self.reservoir_dim, device=self.device),
+          B1, B2 = (torch.randn(self.reservoir_dim, self.reservoir_dim, device=self.device),
                         torch.randn(self.brownian_dim, self.reservoir_dim, self.reservoir_dim, device=self.device))
 
-          self.lambda1, self.lambda2 = (torch.randn(self.reservoir_dim, 1, device=self.device),
+          lambda1, lambda2 = (torch.randn(self.reservoir_dim, 1, device=self.device),
                              torch.randn(self.brownian_dim, self.reservoir_dim, 1, device=self.device))
+
+        self.register_buffer("B1", B1, persistent=False)
+        self.register_buffer("B2", B2, persistent=False)
+        self.register_buffer("lambda1", lambda1, persistent=False)
+        self.register_buffer("lambda2", lambda2, persistent=False)
 
         """
         Sample random matrices and biases for conditioning reservoir of path past  
@@ -86,7 +96,8 @@ class ConditionalNeuralSDEGenerator(GeneratorBase):
 
         return R
 
-    def forward(self, batch_size: int, n_lags: int, x_past: torch.tensor, device: str) -> torch.tensor:
+    def forward(self, batch_size: int, n_lags: int, x_past: torch.tensor, device: str = None) -> torch.tensor:
+        device = device or self.device
         V = torch.randn(batch_size, self.noise_input_dim, device = device)
         V = self.hidden_layer_init_1(V)
         V = self.activation(V)

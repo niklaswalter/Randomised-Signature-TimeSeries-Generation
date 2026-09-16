@@ -4,11 +4,15 @@ Main file for model training
 
 import torch
 
-from rsig_wgan.config import load_config
+from rsig_wgan.config import ACTIVATION_REGISTRY, load_config
 from rsig_wgan.data import get_data
 from rsig_wgan.discriminator_models import RSigWGANTraining, SigWGANTraining
-from rsig_wgan.evaluator import Evaluator
-from rsig_wgan.generator_models import LSTMGenerator, NeuralSDEGenerator
+from rsig_wgan.discriminator_models.rsigcw1 import RSigCWGANTraining
+from rsig_wgan.discriminator_models.sigcw1 import SigCWGANTraining
+from rsig_wgan.evaluator import ConditionalEvaluator, Evaluator
+from rsig_wgan.generator_models import ConditionalNeuralSDEGenerator, LSTMGenerator, NeuralSDEGenerator
+
+CONDITIONAL_DISCRIMINATORS = ("RSigCW1", "SigCW1")
 
 
 def sample_reservoir_matrices(config, device):
@@ -39,6 +43,15 @@ def get_generator(config, device, A1, A2, xi1, xi2):
         )
     elif config.generator.id == "LSTM":
         return LSTMGenerator(config=config, device=device)
+    elif config.generator.id == "ConditionalNeuralSDE":
+        return ConditionalNeuralSDEGenerator(
+            config=config,
+            device=device,
+            A1=A1,
+            A2=A2,
+            xi1=xi1,
+            xi2=xi2
+        )
     raise ValueError(f"Unknown generator id: {config.generator.id}")
 
 
@@ -63,7 +76,53 @@ def get_training(config, generator, x_train, x_val, device, A1, A2, xi1, xi2):
             config=config,
             device=device
         )
+    elif config.discriminator.id == "RSigCW1":
+        return RSigCWGANTraining(
+            x_train=x_train,
+            x_val=x_val,
+            batch_size=config.hyperparameters.batch_size,
+            generator=generator,
+            p=config.timeseries.p,
+            q=config.timeseries.q,
+            dim_res=config.rsigcw1.reservoir_dim_metric,
+            mc_num=config.hyperparameters.mc_num,
+            num_grad_steps=config.hyperparameters.gradient_steps,
+            learning_rate=config.hyperparameters.learning_rate,
+            activation=ACTIVATION_REGISTRY[config.cond_neural_sde.activation],
+            device=device,
+            A1=A1,
+            A2=A2,
+            xi1=xi1,
+            xi2=xi2
+        )
+    elif config.discriminator.id == "SigCW1":
+        return SigCWGANTraining(
+            x_train=x_train,
+            x_val=x_val,
+            batch_size=config.hyperparameters.batch_size,
+            generator=generator,
+            p=config.timeseries.p,
+            q=config.timeseries.q,
+            mc_num=config.hyperparameters.mc_num,
+            num_grad_steps=config.hyperparameters.gradient_steps,
+            learning_rate=config.hyperparameters.learning_rate,
+            trunc=config.sigcw1.truncation_depth,
+            device=device,
+            augmented=config.sigcw1.augmented
+        )
     raise ValueError(f"Unknown discriminator id: {config.discriminator.id}")
+
+
+def get_evaluator(config, training, x_train, x_test, scaler, device):
+    evaluator = ConditionalEvaluator if config.discriminator.id in CONDITIONAL_DISCRIMINATORS else Evaluator
+    return evaluator(
+        training=training,
+        x_train=x_train,
+        x_test=x_test,
+        config=config,
+        scaler=scaler,
+        device=device
+    )
 
 
 def main():
@@ -72,6 +131,15 @@ def main():
     config = load_config()
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
+    if config.discriminator.id in CONDITIONAL_DISCRIMINATORS:
+        # the conditional models split each path into a past of p and a future of q steps
+        expected_lags = config.timeseries.p + config.timeseries.q
+        if config.timeseries.n_lags != expected_lags:
+            raise ValueError(
+                f"conditional training needs n_lags == p + q, but n_lags is "
+                f"{config.timeseries.n_lags} and p + q is {expected_lags}"
+            )
+
     data, (data_train, data_val, data_test) = get_data(config)
 
     A1, A2, xi1, xi2 = sample_reservoir_matrices(config, device)
@@ -79,14 +147,7 @@ def main():
     training = get_training(config, generator, data_train, data_val, device, A1, A2, xi1, xi2)
     training.fit()
 
-    evaluator = Evaluator(
-        training=training,
-        x_train=data_train,
-        x_test=data_test,
-        config=config,
-        scaler=data.scaler,
-        device=device
-    )
+    evaluator = get_evaluator(config, training, data_train, data_test, data.scaler, device)
     evaluator.log_to_mlflow()
 
 

@@ -40,6 +40,14 @@ sigw1:
   truncation_depth: 4
   normalise: True
 
+sigcw1:
+  truncation_depth: 4
+  augmented: True
+
+conditional_evaluation:
+  n_eval: 100
+  samples_per_past: 200
+
 neural_sde:
   input_dim: 32
   hidden_dim: 32
@@ -57,6 +65,7 @@ cond_neural_sde:
   hidden_dim: 32
   brownian_dim: 1
   reservoir_dim_gen: 80
+  initial_noise_dim: 40
   activation: "Sigmoid"
 
 data: 

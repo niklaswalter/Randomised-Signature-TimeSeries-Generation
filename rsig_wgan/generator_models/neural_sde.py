@@ -66,8 +66,6 @@ class NeuralSDEGenerator(GeneratorBase):
           lambda1, lambda2 = (torch.randn(self.reservoir_dim, 1, device=self.device),
                              torch.randn(self.brownian_dim, self.reservoir_dim, 1, device=self.device))
 
-        # buffers, so the untrained reservoir follows the module across .to(device);
-        # non-persistent to keep state_dict keys unchanged for existing checkpoints
         self.register_buffer("B1", B1, persistent=False)
         self.register_buffer("B2", B2, persistent=False)
         self.register_buffer("lambda1", lambda1, persistent=False)
