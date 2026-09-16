@@ -113,7 +113,7 @@ class RSigCWGANTraining:
                 x = torch.cat([x, x_fake], dim=0)
             rsig_fake = compute_rsig(x[self.mc_num:, :, :], self.A1, self.A2, self.xi1, self.xi2,
                                                   self.dim_res, self.activation, self.device)
-            rsig_fake_mc = rsig_fake.reshape(self.mc_num, self.batch_size, self.dim_res).mean(0)
+            rsig_fake_mc = rsig_fake.reshape(self.batch_size, self.mc_num, self.dim_res).mean(1)
 
             loss = torch.norm(rsig_pred - rsig_fake_mc, p=2, dim=1).mean()
             loss.backward()
