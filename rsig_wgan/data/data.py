@@ -65,6 +65,7 @@ class AutoregressiveProcess(Data):
         paths = torch.zeros([samples, self.n_lags, self.dim])
         for i in range(1, self.n_lags):
             paths[:, i, :] = self.phi * paths[:, i - 1, :] + self.std * torch.randn(samples, self.dim)
+        self.scaler.fit(paths)
         paths = self.scaler.transform(paths)
         return paths
 
@@ -87,7 +88,6 @@ class SP500(Data):
         data = yf.download("SPY", start=self.start, end=self.end)
         log_returns = (np.log(data["Close"]) - np.log(data["Close"].shift(1)))[1:].to_numpy().reshape(-1, 1)
         log_returns = torch.from_numpy(log_returns).float().unsqueeze(0)
-        log_returns = self.scaler.transform(log_returns)
         paths = rolling_window(log_returns, self.n_lags)
         return paths
 
@@ -107,6 +107,5 @@ class FOREX(Data):
         data.columns = ["Date", "Open", "High", "Low", "Close", "Vol"]
         log_returns = (np.log(data.Close) - np.log(data.Close).shift(1))[1:].to_numpy().reshape(-1, 1)
         log_returns = torch.from_numpy(log_returns).float().unsqueeze(0)
-        log_returns = self.scaler.transform(log_returns)
         paths = rolling_window(log_returns, self.n_lags)
         return paths

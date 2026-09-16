@@ -11,9 +11,13 @@ class Standardiser:
         self.std = None
         self.shift_by = None
 
-    def transform(self, x: torch.tensor) -> torch.tensor:
+    def fit(self, x: torch.tensor) -> None:
         self.mean = x.mean()
         self.std = x.std()
+
+    def transform(self, x: torch.tensor) -> torch.tensor:
+        if self.mean is None:
+            raise RuntimeError("Standardiser must be fitted before transforming")
         return (x - self.mean) / self.std
 
     def inverse(self, x: torch.tensor) -> torch.tensor:
@@ -29,6 +33,9 @@ class IDScaler:
         self.mean = None
         self.std = None
         self.shift_by = None
+
+    def fit(self, x: torch.tensor) -> None:
+        pass
 
     def transform(self, x: torch.tensor) -> torch.tensor:
         return x

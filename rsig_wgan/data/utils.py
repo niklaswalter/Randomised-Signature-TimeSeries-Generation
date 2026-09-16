@@ -74,5 +74,8 @@ def get_data(
         data = FOREX(config.timeseries.n_lags)
         paths = data.generate()
     if config.data.id in ("SP500", "FOREX"):
-        return [data, chronological_split(paths, config.timeseries.n_lags)]
+        # fit the scaler on the training block only, then apply it to every block
+        x_train, x_val, x_test = chronological_split(paths, config.timeseries.n_lags)
+        data.scaler.fit(x_train)
+        return [data, tuple(data.scaler.transform(x) for x in (x_train, x_val, x_test))]
     return [data, train_test_split(paths)]
