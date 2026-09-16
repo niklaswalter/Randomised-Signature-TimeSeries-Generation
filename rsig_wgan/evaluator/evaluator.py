@@ -9,7 +9,7 @@ from rsig_wgan.config import ACTIVATION_REGISTRY
 from rsig_wgan.discriminator_models import RSigW1Metric, SigW1Metric
 
 from .metrics import acf_diff, cov_diff, p_val_normaltest
-from .utils import plot_data_test
+from .utils import plot_data_test, resolve_tracking_uri
 
 
 class Evaluator:
@@ -79,7 +79,7 @@ class Evaluator:
         return [p_val_normaltest(self.x_fake, i) for i in range(1, self.n_lags)]
 
     def log_to_mlflow(self):
-        os.environ.setdefault("MLFLOW_TRACKING_URI", self.config.mlflow.tracking_uri)
+        os.environ.setdefault("MLFLOW_TRACKING_URI", resolve_tracking_uri(self.config.mlflow.tracking_uri))
         mlflow.set_experiment(self.config.mlflow.experiment_name)
         model_name = f"{self.generator_id}-{self.discriminator_id}-{self.n_lags}"
 

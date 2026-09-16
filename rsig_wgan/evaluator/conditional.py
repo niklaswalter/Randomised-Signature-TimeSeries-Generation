@@ -15,7 +15,7 @@ from rsig_wgan.utils import (compute_rsig, fit_lr_rsig, generate_in_chunks, pred
                              sample_indices)
 
 from .metrics import acf_diff, cov_diff
-from .utils import plot_conditional_paths
+from .utils import plot_conditional_paths, resolve_tracking_uri
 
 
 class ConditionalEvaluator:
@@ -154,7 +154,7 @@ class ConditionalEvaluator:
         return torch.norm(predicted - realised, p=2, dim=1).mean()
 
     def log_to_mlflow(self):
-        os.environ.setdefault("MLFLOW_TRACKING_URI", self.config.mlflow.tracking_uri)
+        os.environ.setdefault("MLFLOW_TRACKING_URI", resolve_tracking_uri(self.config.mlflow.tracking_uri))
         mlflow.set_experiment(self.config.mlflow.experiment_name)
         model_name = f"{self.generator_id}-{self.discriminator_id}-{self.p}-{self.q}"
 

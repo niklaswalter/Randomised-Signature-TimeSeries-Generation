@@ -9,5 +9,6 @@ __all__ = [
     "cov_diff",
     "acf_diff",
     "p_val_normaltest",
-    "load_model_from_mlflow"
+    "load_model_from_mlflow",
+    "resolve_tracking_uri"
 ]

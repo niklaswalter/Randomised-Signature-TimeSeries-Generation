@@ -112,8 +112,7 @@ class ConditionalNeuralSDEGenerator(GeneratorBase):
         rsig_cond = self.activation(rsig_cond)
         rsig_cond = self.output_layer_init_2(rsig_cond).reshape(
             n_past, self.reservoir_dim - self.initial_noise_dim, 1)
-        # repeat_interleave keeps each past's draws contiguous, which is the grouping the
-        # Monte-Carlo average relies on; repeat would tile and silently mix pasts
+ 
         rsig_cond = rsig_cond.repeat_interleave(batch_size, dim=0)
 
         V = torch.randn(total, self.noise_input_dim, device=device)

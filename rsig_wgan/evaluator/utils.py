@@ -1,5 +1,6 @@
 import os
 from datetime import datetime
+from pathlib import Path
 
 import matplotlib.pyplot as plt
 import mlflow.pytorch
@@ -7,6 +8,16 @@ import seaborn as sns
 import torch
 
 from rsig_wgan.data import to_numpy
+
+
+def resolve_tracking_uri(uri: str) -> str:
+    """
+    Resolve a relative tracking path against the project root rather than the working
+    directory, so runs accumulate in one place wherever training is launched from.
+    """
+    if "://" in uri or os.path.isabs(uri):
+        return uri
+    return str((Path(__file__).resolve().parents[2] / uri).resolve())
 
 
 def load_model_from_mlflow(run_id: str, name: str):
