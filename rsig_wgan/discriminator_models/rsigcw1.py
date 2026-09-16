@@ -68,9 +68,9 @@ class RSigCWGANTraining:
         self.generator = generator
         self.dim_res = dim_res
         self.mc_num = mc_num
-        self.generator_optim = optim.Adam(self.generator.parameters())
         self.num_grad_steps = num_grad_steps
         self.learning_rate = learning_rate
+        self.generator_optim = optim.Adam(self.generator.parameters(), lr=self.learning_rate)
         self.activation = activation
 
         self.A1, self.A2 = A1, A2
