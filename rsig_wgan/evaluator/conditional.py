@@ -5,7 +5,7 @@ Out-of-sample evaluation for the conditional generators
 import torch
 
 from rsig_wgan.discriminator_models.sigcw1 import compute_sig, fit_lr_sig, predict_lr_sig
-from rsig_wgan.utils import compute_rsig, fit_lr_rsig, predict_lr_rsig
+from rsig_wgan.utils import compute_rsig, fit_lr_rsig, predict_lr_rsig, sample_indices
 
 from .metrics import acf_diff, cov_diff
 
@@ -35,7 +35,9 @@ class ConditionalEvaluator:
         dim_res=None,
         activation=None,
         trunc=None,
-        augmented=True
+        augmented=True,
+        n_eval=None,
+        samples_per_past=None
     ):
         self.generator = generator
         self.p = p
@@ -48,17 +50,23 @@ class ConditionalEvaluator:
         self.activation = activation
         self.trunc = trunc
         self.augmented = augmented
+        self.samples_per_past = samples_per_past or mc_num
 
-        self.x_train_past = x_train[:, :self.p].to(self.device)
-        self.x_train_future = x_train[:, self.p:].to(self.device)
-        self.x_test_past = x_test[:, :self.p].to(self.device)
-        self.x_test_future = x_test[:, self.p:].to(self.device)
+        # the conditional expectation is fitted on all training pairs; n_eval only limits
+        # how many pasts the Monte-Carlo metrics are evaluated on, which costs mc_num
+        # generator calls each
+        self.x_fit_past = x_train[:, :self.p].to(self.device)
+        self.x_fit_future = x_train[:, self.p:].to(self.device)
+
+        self.x_train_past, self.x_train_future = self.evaluation_subset(x_train, n_eval)
+        self.x_test_past, self.x_test_future = self.evaluation_subset(x_test, n_eval)
 
         self.estimator = self.fit_estimator()
 
         with torch.no_grad():
             self.x_fake_train = self.generate_conditional(self.x_train_past)
             self.x_fake_test = self.generate_conditional(self.x_test_past)
+
 
             self.train_error = self.conditional_error(self.x_train_past)
             self.test_error = self.conditional_error(self.x_test_past)
@@ -69,12 +77,17 @@ class ConditionalEvaluator:
             self.cov_train_error = cov_diff(self.x_train_future, self.x_fake_train)
             self.cov_test_error = cov_diff(self.x_test_future, self.x_fake_test)
 
+    def evaluation_subset(self, x, n_eval):
+        if n_eval is not None and n_eval < x.shape[0]:
+            x = x[sample_indices(x.shape[0], n_eval)]
+        return x[:, :self.p].to(self.device), x[:, self.p:].to(self.device)
+
     def fit_estimator(self):
         if self.discriminator_id == "RSigCW1":
-            return fit_lr_rsig(self.x_train_future, self.x_train_past, self.A1, self.A2, self.xi1, self.xi2,
+            return fit_lr_rsig(self.x_fit_future, self.x_fit_past, self.A1, self.A2, self.xi1, self.xi2,
                                self.dim_res, self.activation, self.device)
         elif self.discriminator_id == "SigCW1":
-            return fit_lr_sig(self.x_train_future, self.x_train_past, self.trunc, self.device, self.augmented)
+            return fit_lr_sig(self.x_fit_future, self.x_fit_past, self.trunc, self.device, self.augmented)
         raise ValueError(f"Unknown conditional discriminator id: {self.discriminator_id}")
 
     def predict(self, x_past):
@@ -91,11 +104,37 @@ class ConditionalEvaluator:
 
     def generate_conditional(self, x_past, samples_per_past=None):
         """
-        One future per past, for the distributional metrics
+        Many futures per past. One draw each would only compare pooled marginals,
+        which says nothing about the conditional law.
         """
-        n = samples_per_past or 1
+        n = samples_per_past or self.samples_per_past
         paths = [self.generator(n, self.q, past.reshape(1, self.p, 1)).to(self.device) for past in x_past]
         return torch.cat(paths, dim=0)
+
+    def conditional_moments(self, x_past, samples_per_past=None):
+        """
+        Mean and standard deviation of the generated futures for each past, shape (n_past, q)
+        """
+        n = samples_per_past or self.samples_per_past
+        means, stds = [], []
+        for past in x_past:
+            fakes = self.generator(n, self.q, past.reshape(1, self.p, 1)).to(self.device)
+            means.append(fakes.mean(0).reshape(-1))
+            stds.append(fakes.std(0).reshape(-1))
+        return torch.stack(means), torch.stack(stds)
+
+    def brownian_conditional_error(self, x_past, drift, std, h, samples_per_past=None):
+        """
+        Exact conditional check for Brownian motion: given the past, the future level k steps
+        ahead is N(last past value + k * drift * h, k * h * std ** 2)
+        """
+        with torch.no_grad():
+            gen_mean, gen_std = self.conditional_moments(x_past, samples_per_past)
+            last = x_past[:, -1, 0].to(self.device).unsqueeze(1)
+            k = torch.arange(1, self.q + 1, device=self.device, dtype=gen_mean.dtype).unsqueeze(0)
+            true_mean = last + k * drift * h
+            true_std = (k * h).sqrt() * std
+            return (gen_mean - true_mean).abs().mean(), (gen_std - true_std).abs().mean()
 
     def monte_carlo_features(self, x_past):
         """
