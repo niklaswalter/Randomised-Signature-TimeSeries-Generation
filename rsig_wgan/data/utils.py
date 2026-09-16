@@ -2,7 +2,7 @@ import numpy as np
 import omegaconf
 import torch
 
-from .data import FOREX, SP500, AutoregressiveProcess, BrownianMotion
+from .data import FOREX, SP500, AutoregressiveProcess, BrownianMotion, GeometricBrownianMotion
 
 
 def sample_indices(dataset_size, batch_size: int) -> torch.tensor:
@@ -64,6 +64,15 @@ def get_data(
                 config.timeseries.data_dim
             )
         paths = data.generate(config.bm.samples)
+    elif config.data.id == "GBM":
+        data = GeometricBrownianMotion(
+                config.timeseries.n_lags,
+                config.gbm.drift,
+                config.gbm.std,
+                config.gbm.initial_value_gbm,
+                config.timeseries.data_dim
+            )
+        paths = data.generate(config.gbm.samples)
     elif config.data.id == "SP500":
         data = SP500(config.timeseries.n_lags)
         paths = data.generate()
@@ -73,6 +82,8 @@ def get_data(
     elif config.data.id == "FOREX":
         data = FOREX(config.timeseries.n_lags)
         paths = data.generate()
+    else:
+        raise ValueError(f"Unknown data id: {config.data.id}")
     if config.data.id in ("SP500", "FOREX"):
         # fit the scaler on the training block only, then apply it to every block
         x_train, x_val, x_test = chronological_split(paths, config.timeseries.n_lags)

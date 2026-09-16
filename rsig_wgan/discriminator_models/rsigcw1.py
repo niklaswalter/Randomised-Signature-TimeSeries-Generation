@@ -117,7 +117,9 @@ class RSigCWGANTraining:
 
             loss = torch.norm(rsig_pred - rsig_fake_mc, p=2, dim=1).mean()
             loss.backward()
-            self.best_loss = loss.item() if j == 0 else self.best_loss
+            if j == 0:
+                self.best_loss = loss.item()
+                self.best_generator = deepcopy(self.generator.state_dict())
             if (j + 1) % 100 == 0:
                 print("rsig-c-w1 loss: {:1.2e}, best loss: {:1.2e}".format(loss.item(), self.best_loss))
             self.generator_optim.step()

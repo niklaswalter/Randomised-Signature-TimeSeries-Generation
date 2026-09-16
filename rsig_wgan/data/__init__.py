@@ -4,6 +4,7 @@ from .utils import *
 
 __all__ = [
     "BrownianMotion",
+    "GeometricBrownianMotion",
     "AutoregressiveProcess",
     "SP500",
     "FOREX",

@@ -49,6 +49,28 @@ class BrownianMotion(Data):
         return torch.cumsum(path, 1)
 
 
+class GeometricBrownianMotion(Data):
+    """
+    Class implementing generation of geometric Brownian motion paths
+    """
+
+    def __init__(self, n_lags: int, drift: float = 0.0, std: float = 1.0, init: float = 1.0, dim: int = 1,
+                 T: float = 1.0):
+        super().__init__(n_lags)
+        self.drift = drift
+        self.std = std
+        self.init = init
+        self.dim = dim
+        self.h = T / n_lags
+        self.scaler = IDScaler()
+
+    def generate(self, samples: int) -> torch.tensor:
+        path = torch.zeros([samples, self.n_lags, self.dim])
+        path[:, 1:, :] = ((self.drift - self.std ** 2 / 2.) * self.h + math.sqrt(self.h) * self.std *
+                          torch.randn(samples, self.n_lags - 1, self.dim))
+        return self.init * torch.exp(torch.cumsum(path, 1))
+
+
 class AutoregressiveProcess(Data):
     """
     Class implementing generation of paths of AR(1) process
