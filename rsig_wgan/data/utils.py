@@ -22,6 +22,33 @@ def train_test_split(x: torch.tensor, ratio_train=0.2, ratio_val=0.1) -> torch.t
     x_test = x[indices_test]
     return x_train, x_val, x_test
 
+def chronological_split(
+    x: torch.tensor, n_lags: int, ratio_train=0.7, ratio_val=0.1
+) -> torch.tensor:
+    """
+    Chronological split for overlapping rolling windows.
+
+    Windows i and j share a return whenever |i - j| <= n_lags - 1, so a random split
+    leaks almost every test window into training. Dropping n_lags - 1 windows between
+    the blocks is exactly enough to make them share no return.
+    """
+    size = x.shape[0]
+    embargo = n_lags - 1
+
+    train_end = int(size * ratio_train)
+    val_start = train_end + embargo
+    val_end = val_start + int(size * ratio_val)
+    test_start = val_end + embargo
+
+    if test_start >= size:
+        raise ValueError(
+            f"{size} windows are too few for a {ratio_train}/{ratio_val} split with an "
+            f"embargo of {embargo} windows"
+        )
+
+    return x[:train_end], x[val_start:val_end], x[test_start:]
+
+
 def to_numpy(x: torch.tensor) -> np.array:
     return x.detach().cpu().numpy()
 
@@ -46,4 +73,6 @@ def get_data(
     elif config.data.id == "FOREX":
         data = FOREX(config.timeseries.n_lags)
         paths = data.generate()
+    if config.data.id in ("SP500", "FOREX"):
+        return [data, chronological_split(paths, config.timeseries.n_lags)]
     return [data, train_test_split(paths)]

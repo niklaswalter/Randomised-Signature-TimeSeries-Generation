@@ -12,6 +12,7 @@ __all__ = [
     "IDScaler",
     "rolling_window",
     "train_test_split",
+    "chronological_split",
     "get_data",
     "to_numpy"
 ]
