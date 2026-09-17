@@ -1,5 +1,5 @@
 [project]
-name = "rsig_gen"
+name = "rsig_wgan"
 description = "Package for time-series generation using randomised signature"
 readme = "README.md"
 dynamic = ["version"]

@@ -2,3 +2,5 @@ mlruns/
 plots/
 __pycache__/
 *.py[cod]
+*/__pycache__
+*.egg-info/
