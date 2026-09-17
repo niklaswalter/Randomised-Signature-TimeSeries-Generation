@@ -3,6 +3,26 @@ name = "rsig_wgan"
 description = "Package for time-series generation using randomised signature"
 readme = "README.md"
 dynamic = ["version"]
+dependencies = [
+    "loguru",
+    "matplotlib",
+    "mlflow==3.8.0",
+    "numpy",
+    "omegaconf",
+    "pandas",
+    "scikit-learn",
+    "scipy",
+    "seaborn",
+    "torch",
+    "tqdm",
+    "pyyaml",
+    "yfinance",
+]
+
+# signatory is only imported lazily, inside the Sig-W1 discriminators. It must be
+# built against the exact installed torch version, so it stays opt-in.
+[project.optional-dependencies]
+signature = ["signatory"]
 
 [build-system]
 requires = ["setuptools>=45", "wheel", "setuptools_scm[toml]>=6.2"]
