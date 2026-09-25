@@ -1,3 +1,8 @@
+seed: 0
+
+evaluation:
+  n_samples: 2000        # generated paths used for the metrics; matches the test set size
+
 mlflow:
   tracking_uri: "./mlruns"
   experiment_name: "RSIG-Generator-Test"
@@ -12,7 +17,7 @@ bm:
   samples: 10000
   drift: 0.0
   std: 1.0
-  T: 10        # T / n_lags = 1 gives the unit time steps of eq. (30)
+  T: 1         # h = T / n_lags = 0.1: Euler discretisation on [0, 1]
 
 gbm:
   samples: 50000
@@ -82,6 +87,6 @@ discriminator:
   id: "RSigW1"
 
 others: 
-  trainable_var: False          # the paper fixes rho_5 = 1 throughout Section 3.2
+  trainable_var: True           # rho_5 trainable: the paper notes this helps for small-variance paths
   same_matrices: False
   time_homogeneous_readout: False

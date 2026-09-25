@@ -15,7 +15,7 @@ from rsig_wgan.utils import (compute_rsig, fit_lr_rsig, generate_in_chunks, pred
                              sample_indices)
 
 from .metrics import acf_diff, cov_diff
-from .utils import plot_conditional_paths, resolve_tracking_uri
+from .utils import plot_conditional_paths, log_config, resolve_tracking_uri
 
 
 class ConditionalEvaluator:
@@ -172,6 +172,7 @@ class ConditionalEvaluator:
             mlflow.log_param("evaluation pasts", self.x_test_past.shape[0])
             mlflow.log_param("samples per past", self.samples_per_past)
             mlflow.log_params(self.data_process_params())
+            log_config(self.config)
 
             mlflow.log_metric(f"{self.discriminator_id}-error-train", float(self.train_error))
             mlflow.log_metric(f"{self.discriminator_id}-error-test", float(self.test_error))

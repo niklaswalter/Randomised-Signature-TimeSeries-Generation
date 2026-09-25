@@ -14,18 +14,15 @@ from sklearn.linear_model import LinearRegression
 from torch import optim
 from tqdm import tqdm
 
-from rsig_wgan.utils import generate_in_chunks, sample_indices, to_numpy
+from rsig_wgan.utils import generate_in_chunks, sample_indices, signature, to_numpy
 
 from .sigw1 import apply_augmentations
 
 
 def compute_sig(x: torch.tensor, trunc: int, device: str, augmented: bool = True) -> torch.tensor:
-    # signatory pins torch 1.x, so it is only imported where the signature is actually needed
-    import signatory
-
     if augmented:
         x = apply_augmentations(x, device)
-    return signatory.signature(x.to(device), depth=trunc)
+    return signature(x.to(device), trunc)
 
 
 def fit_lr_sig(

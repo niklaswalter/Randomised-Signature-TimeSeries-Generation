@@ -2,6 +2,7 @@
 Main file for model training
 """
 
+import numpy as np
 import torch
 
 from rsig_wgan.config import ACTIVATION_REGISTRY, load_config
@@ -15,13 +16,28 @@ from rsig_wgan.generator_models import ConditionalNeuralSDEGenerator, LSTMGenera
 CONDITIONAL_DISCRIMINATORS = ("RSigCW1", "SigCW1")
 
 
+def set_seed(seed):
+    """Data, reservoir matrices and initialisation all draw from these two generators."""
+    torch.manual_seed(seed)
+    np.random.seed(seed)
+
+
 def sample_reservoir_matrices(config, device):
     """
     Random matrices and biases of the RSig-W1 reservoir. Shared with the generator
     when config.others.same_matrices is set, which assumes data_dim == brownian_dim.
     """
-    res_dim = config.rsigw1.reservoir_dim_metric
+    conditional = config.discriminator.id in CONDITIONAL_DISCRIMINATORS
+    res_dim = (config.rsigcw1.reservoir_dim_metric if conditional
+               else config.rsigw1.reservoir_dim_metric)
     data_dim = config.timeseries.data_dim
+
+    if conditional and config.cond_neural_sde.reservoir_dim_gen != res_dim:
+        # the conditional generator encodes the past with these same matrices
+        raise ValueError(
+            f"cond_neural_sde.reservoir_dim_gen ({config.cond_neural_sde.reservoir_dim_gen}) must equal "
+            f"rsigcw1.reservoir_dim_metric ({res_dim})"
+        )
 
     A1 = torch.randn(res_dim, res_dim, device=device)
     A2 = torch.randn(data_dim, res_dim, res_dim, device=device)
@@ -131,6 +147,7 @@ def main():
     torch.autograd.set_detect_anomaly(True)
 
     config = load_config()
+    set_seed(config.seed)
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
     if config.discriminator.id in CONDITIONAL_DISCRIMINATORS:

@@ -14,6 +14,8 @@ from tqdm import tqdm
 from collections import defaultdict
 from copy import deepcopy
 
+from rsig_wgan.utils import signature
+
 from .utils import l2_dist
 
 """
@@ -99,12 +101,9 @@ def compute_exp_sig(
     normalise: bool = True,
     augmented: bool = True
 ) -> torch.tensor:
-    # signatory pins torch 1.x, so it is only imported where the Sig-W1 metric is actually used
-    import signatory
-
     if augmented:
         x = apply_augmentations(x, device)
-    exp_sig = signatory.signature(x.to(device), depth=trunc).mean(0)
+    exp_sig = signature(x.to(device), trunc).mean(0)
     dim = x.shape[2]
     count = 0
     if normalise:

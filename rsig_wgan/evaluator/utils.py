@@ -1,4 +1,5 @@
 import os
+import tempfile
 from datetime import datetime
 from pathlib import Path
 
@@ -7,7 +8,36 @@ import mlflow.pytorch
 import seaborn as sns
 import torch
 
+import mlflow
+from omegaconf import OmegaConf
+
 from rsig_wgan.data import to_numpy
+
+
+def log_config(config):
+    """
+    Record the whole resolved config, so a run carries every value that produced it -
+    seed, time scaling, truncation depth and switches that the headline params omit.
+    """
+    flat = {}
+
+    def walk(node, prefix):
+        for key, value in node.items():
+            name = f"{prefix}{key}"
+            if isinstance(value, dict):
+                walk(value, f"{name}.")
+            else:
+                flat[name] = value
+
+    resolved = OmegaConf.to_container(config, resolve=True)
+    walk(resolved, "")
+    mlflow.log_params(flat)
+
+    with tempfile.TemporaryDirectory() as tmp_dir:
+        path = os.path.join(tmp_dir, "config.yml")
+        with open(path, "w") as handle:
+            handle.write(OmegaConf.to_yaml(config))
+        mlflow.log_artifact(path)
 
 
 def resolve_tracking_uri(uri: str) -> str:
