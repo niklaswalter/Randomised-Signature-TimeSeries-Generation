@@ -24,8 +24,9 @@ class Evaluator:
     ):
         self.config = config
         self.training = training
-        self.x_train = x_train
-        self.x_test = x_test
+        # the metrics compare these against x_fake, which the generator produces on device
+        self.x_train = x_train.to(device)
+        self.x_test = x_test.to(device)
         self.scaler = scaler
         self.best_generator = self.training.generator
         self.generator_id = config.generator.id

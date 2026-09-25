@@ -3,15 +3,16 @@ mlflow:
   experiment_name: "RSIG-Generator-Test"
 
 timeseries: 
-  n_lags: 25
+  n_lags: 10
   data_dim: 1
   p: 6
   q: 10
 
 bm:
-  samples: 100000
-  drift: 0.1
-  std: 0.2
+  samples: 10000
+  drift: 0.0
+  std: 1.0
+  T: 10        # T / n_lags = 1 gives the unit time steps of eq. (30)
 
 gbm:
   samples: 50000
@@ -26,8 +27,8 @@ ar:
 
 hyperparameters:
   learning_rate: 1e-4
-  gradient_steps: 20
-  batch_size: 10000
+  gradient_steps: 2500
+  batch_size: 1500
   mc_num: 1000
   past_chunk: 256
 
@@ -50,7 +51,7 @@ conditional_evaluation:
   samples_per_past: 200
 
 neural_sde:
-  input_dim: 32
+  input_dim: 5
   hidden_dim: 32
   brownian_dim: 1
   reservoir_dim_gen: 80
@@ -62,7 +63,7 @@ lstm:
   num_layers: 2
 
 cond_neural_sde:
-  input_dim: 32
+  input_dim: 5
   hidden_dim: 32
   brownian_dim: 1
   reservoir_dim_gen: 80
@@ -71,6 +72,8 @@ cond_neural_sde:
 
 data: 
   id: "BM"
+  ratio_train: 0.8
+  ratio_val: 0.0
 
 generator:
   id: "NeuralSDE"
@@ -79,6 +82,6 @@ discriminator:
   id: "RSigW1"
 
 others: 
-  trainable_var: True
-  same_matrices: True
-  time_homogeneous_readout: True
+  trainable_var: False          # the paper fixes rho_5 = 1 throughout Section 3.2
+  same_matrices: False
+  time_homogeneous_readout: False

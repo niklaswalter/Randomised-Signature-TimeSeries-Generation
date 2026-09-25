@@ -61,7 +61,8 @@ def get_data(
                 config.timeseries.n_lags,
                 config.bm.drift,
                 config.bm.std,
-                config.timeseries.data_dim
+                config.timeseries.data_dim,
+                config.bm.T
             )
         paths = data.generate(config.bm.samples)
     elif config.data.id == "GBM":
@@ -89,4 +90,4 @@ def get_data(
         x_train, x_val, x_test = chronological_split(paths, config.timeseries.n_lags)
         data.scaler.fit(x_train)
         return [data, tuple(data.scaler.transform(x) for x in (x_train, x_val, x_test))]
-    return [data, train_test_split(paths)]
+    return [data, train_test_split(paths, config.data.ratio_train, config.data.ratio_val)]

@@ -191,7 +191,7 @@ class SigWGANTraining:
             if j == 0:
                 best_loss = loss.item()
                 self.best_generator = deepcopy(self.generator.state_dict())
-            if (j + 1) % 100 == 0:
+            if (j + 1) % 100 == 0 and self.x_val.shape[0] > 0:
                 val_loss = self.metric_val(x_fake)
                 self.val_losses_history["SigW1Val"].append(val_loss.item())
                 print("sig-w1 - train loss: {:1.2e}, best train loss: {:1.2e}, val loss: {:1.2e}"
