@@ -42,7 +42,7 @@ hyperparameters:
 
 rsigw1: 
   reservoir_dim_metric: 80
-  terminal_diff: False    # True reproduces the archived metric
+  terminal_diff: True
 
 rsigcw1: 
   reservoir_dim_metric: 80
