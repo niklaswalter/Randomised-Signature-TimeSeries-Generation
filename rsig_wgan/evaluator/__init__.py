@@ -10,5 +10,6 @@ __all__ = [
     "acf_diff",
     "p_val_normaltest",
     "load_model_from_mlflow",
+    "plot_kde",
     "resolve_tracking_uri"
 ]

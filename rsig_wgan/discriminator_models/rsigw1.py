@@ -14,7 +14,7 @@ from tqdm import tqdm
 
 from rsig_wgan.config import ACTIVATION_REGISTRY
 from rsig_wgan.discriminator_models.utils import l2_dist
-from rsig_wgan.utils import compute_rsig
+from rsig_wgan.utils import compute_rsig, compute_rsig_td
 
 
 class RSigW1Metric:
@@ -35,6 +35,7 @@ class RSigW1Metric:
         self.x_real = x_real
         self.res_dim = config.rsigw1.reservoir_dim_metric
         self.activation = ACTIVATION_REGISTRY[config.neural_sde.activation]
+        self.rsig = compute_rsig_td if config.rsigw1.terminal_diff else compute_rsig
         self.A1 = A1
         self.A2 = A2
         self.xi1 = xi1
@@ -42,7 +43,7 @@ class RSigW1Metric:
         self.device = device
         self.name = "RSig-W1-Dist"
 
-        self.expected_rsig_real = compute_rsig(
+        self.expected_rsig_real = self.rsig(
             self.x_real,
             self.A1,
             self.A2,
@@ -54,7 +55,7 @@ class RSigW1Metric:
         ).mean(0).to(self.device)
 
     def __call__(self, x_fake: torch.tensor) -> float:
-        expected_rsig_fake = compute_rsig(
+        expected_rsig_fake = self.rsig(
             x_fake,
             self.A1,
             self.A2,

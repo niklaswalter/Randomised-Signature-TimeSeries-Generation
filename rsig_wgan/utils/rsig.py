@@ -25,6 +25,29 @@ def compute_rsig(
     return rsig
 
 
+def compute_rsig_td(
+    path: torch.tensor,
+    A1: torch.tensor,
+    A2: torch.tensor,
+    xi1: torch.tensor,
+    xi2: torch.tensor,
+    res_dim: int,
+    activation: Callable,
+    device: str
+) -> torch.tensor:
+    """Terminal difference of the randomised signature: the last step's increment only."""
+    rsig = torch.zeros([path.shape[0], res_dim, 1]).to(device)
+    rsig_penulti = rsig
+
+    for i in range(path.shape[1]):
+        if i == path.shape[1] - 1:
+            rsig_penulti = rsig.clone()
+        rsig = (rsig + activation(A1 @ rsig + xi1)
+                + torch.sum(activation(A2 @ rsig.unsqueeze(-3) + xi2) @ path[:, i, :, None, None].to(device), axis=1))
+
+    return rsig - rsig_penulti
+
+
 def reservoir_features(
     x: torch.tensor,
     A1: torch.tensor,

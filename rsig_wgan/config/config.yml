@@ -39,6 +39,7 @@ hyperparameters:
 
 rsigw1: 
   reservoir_dim_metric: 80
+  terminal_diff: False    # True reproduces the archived metric
 
 rsigcw1: 
   reservoir_dim_metric: 80
@@ -88,5 +89,5 @@ discriminator:
 
 others: 
   trainable_var: True           # rho_5 trainable: the paper notes this helps for small-variance paths
-  same_matrices: False
+  same_matrices: True           # generator reuses the RSig-W1 reservoir matrices
   time_homogeneous_readout: False

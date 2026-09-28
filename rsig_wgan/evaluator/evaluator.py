@@ -9,7 +9,7 @@ from rsig_wgan.config import ACTIVATION_REGISTRY
 from rsig_wgan.discriminator_models import RSigW1Metric, SigW1Metric
 
 from .metrics import acf_diff, cov_diff, p_val_normaltest
-from .utils import plot_data_test, log_config, resolve_tracking_uri
+from .utils import log_config, plot_data_test, plot_kde, resolve_tracking_uri
 
 
 class Evaluator:
@@ -128,6 +128,12 @@ class Evaluator:
 
             plot_path = plot_data_test(self.x_test_scale_inverse, self.x_fake_scale_inverse, self.data_type)
             mlflow.log_artifact(plot_path)
+
+            # real data is shown pooled over time, synthetic paths at individual timepoints
+            # index 0 is deterministic for these processes, so its marginal has no density
+            timesteps = None if self.data_type in ("SP500", "FOREX") else (1, self.n_lags - 1)
+            mlflow.log_artifact(plot_kde(self.x_test_scale_inverse, self.x_fake_scale_inverse,
+                                         self.data_type, timesteps))
             self.log_paths()
 
     def data_process_params(self):

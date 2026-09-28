@@ -114,3 +114,44 @@ def plot_conditional_paths(
     fig.savefig(plot_file_path)
     plt.close()
     return plot_file_path
+
+
+def plot_kde(
+    x_test: torch.tensor,
+    x_fake: torch.tensor,
+    data_type: str,
+    timesteps=None
+) -> str:
+    """
+    Kernel density estimates of test against generated values (paper Appendix C).
+
+    Path-valued data is shown at individual timepoints, as in Figure 3; log-return data
+    is pooled across time, as in Figures 4 and 5.
+    """
+    sns.set_theme()
+    if timesteps:
+        fig, axes = plt.subplots(1, len(timesteps), figsize=(6 * len(timesteps), 4))
+        axes = [axes] if len(timesteps) == 1 else list(axes)
+        for ax, t in zip(axes, timesteps):
+            sns.kdeplot(to_numpy(x_test[:, t, 0]), ax=ax, label="Test set")
+            sns.kdeplot(to_numpy(x_fake[:, t, 0]), ax=ax, label="Generated")
+            ax.set_title("KDE of the test and generated data of {} paths at time t = {}".format(
+                data_type, t + 1), fontsize=10)
+            ax.set_xlabel("values")
+            ax.set_ylabel("Density")
+            ax.legend()
+    else:
+        fig, ax = plt.subplots(figsize=(6, 4))
+        sns.kdeplot(to_numpy(x_test).reshape(-1), ax=ax, label="Test set")
+        sns.kdeplot(to_numpy(x_fake).reshape(-1), ax=ax, label="Generated")
+        ax.set_title("KDE of the test and generated data of {} log-returns".format(data_type), fontsize=10)
+        ax.set_xlabel("std. log-returns")
+        ax.set_ylabel("Density")
+        ax.legend()
+
+    fig.tight_layout()
+    os.makedirs("plots", exist_ok=True)
+    plot_file_path = "plots/kde_plot-{}.pdf".format(datetime.now().strftime("%d%m%Y-%H%M%S"))
+    fig.savefig(plot_file_path)
+    plt.close()
+    return plot_file_path
