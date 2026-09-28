@@ -17,6 +17,7 @@ from tqdm import tqdm
 from rsig_wgan.utils import generate_in_chunks, sample_indices, signature, to_numpy
 
 from .sigw1 import apply_augmentations
+from .utils import fixed_rng
 
 
 def compute_sig(x: torch.tensor, trunc: int, device: str, augmented: bool = True) -> torch.tensor:
@@ -108,7 +109,8 @@ class SigCWGANTraining:
     """
 
     def __init__(self, x_train, x_val, batch_size, generator, p, q, mc_num, num_grad_steps, learning_rate,
-                 trunc, device, augmented=True, past_chunk=None):
+                 trunc, device, augmented=True, past_chunk=None,
+                 checkpoint_every: int = 100, checkpoint_seed: int = 12345):
 
         self.p = p
         self.q = q
@@ -136,6 +138,10 @@ class SigCWGANTraining:
             self.x_train_future, self.x_train_past, self.trunc, self.device, self.augmented
         )
 
+        self.checkpoint_every = checkpoint_every
+        self.checkpoint_seed = checkpoint_seed
+        # a fixed set of pasts, so checkpoint scores are comparable across steps
+        self.checkpoint_idx = torch.arange(min(self.batch_size, self.sig_estimate.shape[0]))
         self.scheduler = optim.lr_scheduler.StepLR(optimizer=self.generator_optim, gamma=0.95, step_size=128)
         self.best_loss = None
 
@@ -152,6 +158,16 @@ class SigCWGANTraining:
         sig_fake_ce = sig_fake_future.reshape(mc_batch_size, self.x_train_past.size(0), -1).mean(0)
         return sig_fake_ce, x_fake
 
+    def _selection_loss(self) -> float:
+        """Score the current generator for checkpoint selection."""
+        with fixed_rng(self.checkpoint_seed), torch.no_grad():
+            sig_pred = self.sig_estimate[self.checkpoint_idx].to(self.device)
+            x_past = self.x_train_past[self.checkpoint_idx].to(self.device)
+            x = generate_in_chunks(self.generator, self.mc_num, self.q, x_past, self.past_chunk).to(self.device)
+            sig_fake = compute_sig(x, self.trunc, self.device, self.augmented)
+            sig_fake_mc = sig_fake.reshape(len(self.checkpoint_idx), self.mc_num, -1).mean(1)
+            return torch.norm(sig_pred - sig_fake_mc, p=2, dim=1).mean().item()
+
     def fit(self):
         self.generator.to(self.device)
 
@@ -165,16 +181,16 @@ class SigCWGANTraining:
 
             loss = torch.norm(sig_pred - sig_fake_mc, p=2, dim=1).mean()
             loss.backward()
-            if j == 0:
-                self.best_loss = loss.item()
-                self.best_generator = deepcopy(self.generator.state_dict())
             if (j + 1) % 100 == 0:
-                print("sig-c-w1 loss: {:1.2e}, best loss: {:1.2e}".format(loss.item(), self.best_loss))
+                print("sig-c-w1 loss: {:1.2e}, best score: {:1.2e}".format(loss.item(), self.best_loss))
+            # score and snapshot before the update, so the weights stored are the ones scored
+            if j % self.checkpoint_every == 0:
+                score = self._selection_loss()
+                if self.best_loss is None or score < self.best_loss:
+                    self.best_loss = score
+                    self.best_generator = deepcopy(self.generator.state_dict())
             self.generator_optim.step()
             self.scheduler.step()
             self.train_losses_history["SigCW1Loss"].append(loss.item())
-            if loss < self.best_loss:
-                self.best_generator = deepcopy(self.generator.state_dict())
-                self.best_loss = loss
 
         self.generator.load_state_dict(self.best_generator)

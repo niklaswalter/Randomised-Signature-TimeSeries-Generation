@@ -36,6 +36,9 @@ hyperparameters:
   batch_size: 1500
   mc_num: 1000
   past_chunk: 256
+  checkpoint_every: 100       # steps between best-model evaluations
+  checkpoint_samples: 4096    # fake sample size used to score a checkpoint
+  checkpoint_seed: 12345      # fixed RNG for scoring, so steps are comparable
 
 rsigw1: 
   reservoir_dim_metric: 80
@@ -61,7 +64,7 @@ neural_sde:
   hidden_dim: 32
   brownian_dim: 1
   reservoir_dim_gen: 80
-  activation: "Sigmoid"
+  activation: "ShiftedSigmoid"
 
 lstm:
   input_dim: 5
@@ -74,7 +77,7 @@ cond_neural_sde:
   brownian_dim: 1
   reservoir_dim_gen: 80
   initial_noise_dim: 40
-  activation: "Sigmoid"
+  activation: "ShiftedSigmoid"
 
 data: 
   id: "BM"

@@ -1,6 +1,7 @@
 from pathlib import Path
 from typing import Any
 
+import torch
 import torch.nn as nn
 import yaml
 from omegaconf import OmegaConf
@@ -21,7 +22,18 @@ def load_config() -> dict[str, Any]:
         print(f"Error reading YAML file: {e}")
         return None
     
-ACTIVATION_REGISTRY = {"Sigmoid": nn.Sigmoid(), "Tanh": nn.Tanh()}
+class ShiftedSigmoid(nn.Module):
+    """Sigmoid shifted to satisfy sigma(0) = 0."""
+
+    def forward(self, x):
+        return torch.sigmoid(x) - 0.5
+
+
+ACTIVATION_REGISTRY = {
+    "Sigmoid": nn.Sigmoid(),
+    "ShiftedSigmoid": ShiftedSigmoid(),
+    "Tanh": nn.Tanh(),
+}
     
 __all__ = ["load_config", "ACTIVATION_REGISTRY"]
 

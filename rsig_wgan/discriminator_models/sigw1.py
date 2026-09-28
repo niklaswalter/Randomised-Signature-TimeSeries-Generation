@@ -16,7 +16,7 @@ from copy import deepcopy
 
 from rsig_wgan.utils import signature
 
-from .utils import l2_dist
+from .utils import fixed_rng, l2_dist
 
 """
 Time augmentation of input path
@@ -172,11 +172,22 @@ class SigWGANTraining:
 
         self.metric = SigW1Metric(x_real=self.x_train, config=config, device=self.device)
         self.metric_val = SigW1Metric(x_real=self.x_val, config=config, device=self.device)
+        hp = config.hyperparameters
+        self.checkpoint_every = hp.get("checkpoint_every", 100)
+        self.checkpoint_samples = hp.get("checkpoint_samples", 4096)
+        self.checkpoint_seed = hp.get("checkpoint_seed", 12345)
         self.scheduler = optim.lr_scheduler.StepLR(optimizer=self.generator_optim, gamma=0.95, step_size=128)
 
     """
     Method to fit model using Adam optimiser
     """
+
+    def _selection_loss(self) -> float:
+        """
+        Score the current generator for checkpoint selection."""
+        with fixed_rng(self.checkpoint_seed), torch.no_grad():
+            x_fake = self.generator(batch_size=self.checkpoint_samples, n_lags=self.n_lags).to(self.device)
+            return self.metric(x_fake).item()
 
     def fit(self):
         self.generator.to(self.device)
@@ -187,18 +198,18 @@ class SigWGANTraining:
             x_fake = self.generator(batch_size=self.batch_size, n_lags=self.n_lags).to(self.device)
             loss = self.metric(x_fake)
             loss.backward()
-            if j == 0:
-                best_loss = loss.item()
-                self.best_generator = deepcopy(self.generator.state_dict())
             if (j + 1) % 100 == 0 and self.x_val.shape[0] > 0:
                 val_loss = self.metric_val(x_fake)
                 self.val_losses_history["SigW1Val"].append(val_loss.item())
-                print("sig-w1 - train loss: {:1.2e}, best train loss: {:1.2e}, val loss: {:1.2e}"
+                print("sig-w1 - train loss: {:1.2e}, best score: {:1.2e}, val loss: {:1.2e}"
                       .format(loss.item(), best_loss, val_loss))
+            # score and snapshot before the update, so the weights stored are the ones scored
+            if j % self.checkpoint_every == 0:
+                score = self._selection_loss()
+                if best_loss is None or score < best_loss:
+                    best_loss = score
+                    self.best_generator = deepcopy(self.generator.state_dict())
             self.generator_optim.step()
             self.scheduler.step()
             self.train_losses_history["SigW1Loss"].append(loss.item())
-            if loss < best_loss:
-                self.best_generator = deepcopy(self.generator.state_dict())
-                best_loss = loss
         self.generator.load_state_dict(self.best_generator)
