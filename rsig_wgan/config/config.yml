@@ -36,9 +36,9 @@ hyperparameters:
   batch_size: 1500
   mc_num: 1000
   past_chunk: 256
-  checkpoint_every: 100       # steps between best-model evaluations
-  checkpoint_samples: 4096    # fake sample size used to score a checkpoint
-  checkpoint_seed: 12345      # fixed RNG for scoring, so steps are comparable
+  checkpoint_every: 100
+  checkpoint_samples: 4096
+  checkpoint_seed: 12345
 
 rsigw1: 
   reservoir_dim_metric: 80
