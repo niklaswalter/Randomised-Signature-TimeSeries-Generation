@@ -60,8 +60,7 @@ def reservoir_features(
     terminal_diff: bool = False
 ):
     """
-    Reservoir features of a path. With terminal_diff, these are the Delta RS of the
-    paper's conditional formulation (eqs. 36-38) rather than the raw reservoir state.
+    Reservoir features of a path.
     """
     rsig = compute_rsig_td if terminal_diff else compute_rsig
     return to_numpy(rsig(x, A1, A2, xi1, xi2, dim, activation, device).reshape([x.shape[0], dim]))

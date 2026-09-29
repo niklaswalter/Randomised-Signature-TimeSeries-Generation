@@ -24,7 +24,6 @@ class ConditionalNeuralSDEGenerator(GeneratorBase):
         self.reservoir_dim = config.cond_neural_sde.reservoir_dim_gen
         self.brownian_dim = config.cond_neural_sde.brownian_dim
         self.activation = ACTIVATION_REGISTRY[config.cond_neural_sde.activation]
-        # eq. (32) conditions the generator on Delta RS_p, not the raw reservoir state
         self.rsig = compute_rsig_td if config.cond_neural_sde.terminal_diff else compute_rsig
         self.hidden_dim = config.cond_neural_sde.hidden_dim
         self.device = device

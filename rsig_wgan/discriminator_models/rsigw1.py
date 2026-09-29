@@ -123,9 +123,7 @@ class RSigWGANTraining:
                             xi2=self.xi2, 
                             device=device
                         )
-        # Selecting the best checkpoint on the training metric would pick the model
-        # using the very quantity that is then reported. Score on the validation split
-        # when there is one; fall back to train only if ratio_val is 0.
+
         self.selection_on_val = self.x_val.shape[0] > 0
         hp = config.hyperparameters
         self.checkpoint_every = hp.get("checkpoint_every", 100)

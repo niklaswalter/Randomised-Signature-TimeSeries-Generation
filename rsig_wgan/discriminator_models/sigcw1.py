@@ -140,9 +140,7 @@ class SigCWGANTraining:
 
         self.checkpoint_every = checkpoint_every
         self.checkpoint_seed = checkpoint_seed
-        # Score checkpoints on held-out pasts: the regression is fitted on train and
-        # applied to validation pasts, so the score tests the generator rather than the
-        # regression. Falls back to train pasts only if ratio_val is 0.
+
         self.selection_on_val = self.x_val.shape[0] > 0
         if self.selection_on_val:
             estimator = fit_lr_sig(self.x_train_future, self.x_train_past, self.trunc,
