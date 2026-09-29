@@ -172,6 +172,10 @@ class SigWGANTraining:
 
         self.metric = SigW1Metric(x_real=self.x_train, config=config, device=self.device)
         self.metric_val = SigW1Metric(x_real=self.x_val, config=config, device=self.device)
+        # Selecting the best checkpoint on the training metric would pick the model
+        # using the very quantity that is then reported. Score on the validation split
+        # when there is one; fall back to train only if ratio_val is 0.
+        self.selection_on_val = self.x_val.shape[0] > 0
         hp = config.hyperparameters
         self.checkpoint_every = hp.get("checkpoint_every", 100)
         self.checkpoint_samples = hp.get("checkpoint_samples", 4096)
@@ -187,7 +191,8 @@ class SigWGANTraining:
         Score the current generator for checkpoint selection."""
         with fixed_rng(self.checkpoint_seed), torch.no_grad():
             x_fake = self.generator(batch_size=self.checkpoint_samples, n_lags=self.n_lags).to(self.device)
-            return self.metric(x_fake).item()
+            metric = self.metric_val if self.selection_on_val else self.metric
+            return metric(x_fake).item()
 
     def fit(self):
         self.generator.to(self.device)

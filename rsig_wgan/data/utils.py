@@ -87,7 +87,9 @@ def get_data(
         raise ValueError(f"Unknown data id: {config.data.id}")
     if config.data.id in ("SP500", "FOREX"):
         # fit the scaler on the training block only, then apply it to every block
-        x_train, x_val, x_test = chronological_split(paths, config.timeseries.n_lags)
+        x_train, x_val, x_test = chronological_split(
+            paths, config.timeseries.n_lags, config.data.ratio_train, config.data.ratio_val
+        )
         data.scaler.fit(x_train)
         return [data, tuple(data.scaler.transform(x) for x in (x_train, x_val, x_test))]
     return [data, train_test_split(paths, config.data.ratio_train, config.data.ratio_val)]

@@ -83,8 +83,8 @@ cond_neural_sde:
 
 data: 
   id: "BM"
-  ratio_train: 0.8
-  ratio_val: 0.0
+  ratio_train: 0.7
+  ratio_val: 0.1
 
 generator:
   id: "NeuralSDE"

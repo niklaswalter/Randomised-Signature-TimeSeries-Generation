@@ -140,8 +140,20 @@ class SigCWGANTraining:
 
         self.checkpoint_every = checkpoint_every
         self.checkpoint_seed = checkpoint_seed
+        # Score checkpoints on held-out pasts: the regression is fitted on train and
+        # applied to validation pasts, so the score tests the generator rather than the
+        # regression. Falls back to train pasts only if ratio_val is 0.
+        self.selection_on_val = self.x_val.shape[0] > 0
+        if self.selection_on_val:
+            estimator = fit_lr_sig(self.x_train_future, self.x_train_past, self.trunc,
+                                   self.device, self.augmented)
+            self.x_sel_past = self.x_val[:, :self.p]
+            self.sel_estimate = predict_lr_sig(estimator, self.x_sel_past, self.trunc,
+                                               self.device, self.augmented)
+        else:
+            self.x_sel_past, self.sel_estimate = self.x_train_past, self.sig_estimate
         # a fixed set of pasts, so checkpoint scores are comparable across steps
-        self.checkpoint_idx = torch.arange(min(self.batch_size, self.sig_estimate.shape[0]))
+        self.checkpoint_idx = torch.arange(min(self.batch_size, self.sel_estimate.shape[0]))
         self.scheduler = optim.lr_scheduler.StepLR(optimizer=self.generator_optim, gamma=0.95, step_size=128)
         self.best_loss = None
 
@@ -161,8 +173,8 @@ class SigCWGANTraining:
     def _selection_loss(self) -> float:
         """Score the current generator for checkpoint selection."""
         with fixed_rng(self.checkpoint_seed), torch.no_grad():
-            sig_pred = self.sig_estimate[self.checkpoint_idx].to(self.device)
-            x_past = self.x_train_past[self.checkpoint_idx].to(self.device)
+            sig_pred = self.sel_estimate[self.checkpoint_idx].to(self.device)
+            x_past = self.x_sel_past[self.checkpoint_idx].to(self.device)
             x = generate_in_chunks(self.generator, self.mc_num, self.q, x_past, self.past_chunk).to(self.device)
             sig_fake = compute_sig(x, self.trunc, self.device, self.augmented)
             sig_fake_mc = sig_fake.reshape(len(self.checkpoint_idx), self.mc_num, -1).mean(1)

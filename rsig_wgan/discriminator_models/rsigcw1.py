@@ -6,7 +6,8 @@ from torch import optim
 from tqdm import tqdm
 
 from rsig_wgan.config import ACTIVATION_REGISTRY
-from rsig_wgan.utils import compute_rsig, compute_rsig_td, generate_in_chunks, lr_rsig, sample_indices
+from rsig_wgan.utils import (compute_rsig, compute_rsig_td, fit_lr_rsig, generate_in_chunks,
+                             lr_rsig, predict_lr_rsig, sample_indices)
 from rsig_wgan.discriminator_models.utils import fixed_rng
 
 
@@ -94,8 +95,22 @@ class RSigCWGANTraining:
 
         self.checkpoint_every = checkpoint_every
         self.checkpoint_seed = checkpoint_seed
+        # Score checkpoints on held-out pasts: the eq. (38) regression is fitted on train
+        # and applied to validation pasts, so the score tests the generator rather than
+        # the regression. Falls back to train pasts only if ratio_val is 0.
+        self.selection_on_val = self.x_val.shape[0] > 0
+        if self.selection_on_val:
+            estimator = fit_lr_rsig(self.x_train_future, self.x_train_past, self.A1, self.A2,
+                                    self.xi1, self.xi2, self.dim_res, self.activation,
+                                    self.device, terminal_diff)
+            self.x_sel_past = self.x_val[:, :self.p]
+            self.sel_estimate = predict_lr_rsig(estimator, self.x_sel_past, self.A1, self.A2,
+                                                self.xi1, self.xi2, self.dim_res,
+                                                self.activation, self.device, terminal_diff)
+        else:
+            self.x_sel_past, self.sel_estimate = self.x_train_past, self.res_estimate
         # a fixed set of pasts, so checkpoint scores are comparable across steps
-        self.checkpoint_idx = torch.arange(min(self.batch_size, self.res_estimate.shape[0]))
+        self.checkpoint_idx = torch.arange(min(self.batch_size, self.sel_estimate.shape[0]))
         self.scheduler = optim.lr_scheduler.StepLR(optimizer=self.generator_optim, gamma=0.95, step_size=128)
         self.best_loss = None
 
@@ -115,8 +130,8 @@ class RSigCWGANTraining:
     def _selection_loss(self) -> float:
         """Score the current generator for checkpoint selection."""
         with fixed_rng(self.checkpoint_seed), torch.no_grad():
-            rsig_pred = self.res_estimate[self.checkpoint_idx].to(self.device)
-            x_past = self.x_train_past[self.checkpoint_idx].to(self.device)
+            rsig_pred = self.sel_estimate[self.checkpoint_idx].to(self.device)
+            x_past = self.x_sel_past[self.checkpoint_idx].to(self.device)
             x = generate_in_chunks(self.generator, self.mc_num, self.q, x_past, self.past_chunk).to(self.device)
             rsig_fake = self.rsig(x, self.A1, self.A2, self.xi1, self.xi2,
                                      self.dim_res, self.activation, self.device)
