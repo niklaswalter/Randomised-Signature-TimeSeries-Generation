@@ -5,7 +5,7 @@ import torch
 import torch.nn as nn
 
 from rsig_wgan.config import ACTIVATION_REGISTRY
-from rsig_wgan.utils import compute_rsig
+from rsig_wgan.utils import compute_rsig, compute_rsig_td
 
 from .base import GeneratorBase
 
@@ -24,6 +24,8 @@ class ConditionalNeuralSDEGenerator(GeneratorBase):
         self.reservoir_dim = config.cond_neural_sde.reservoir_dim_gen
         self.brownian_dim = config.cond_neural_sde.brownian_dim
         self.activation = ACTIVATION_REGISTRY[config.cond_neural_sde.activation]
+        # eq. (32) conditions the generator on Delta RS_p, not the raw reservoir state
+        self.rsig = compute_rsig_td if config.cond_neural_sde.terminal_diff else compute_rsig
         self.hidden_dim = config.cond_neural_sde.hidden_dim
         self.device = device
 
@@ -106,7 +108,7 @@ class ConditionalNeuralSDEGenerator(GeneratorBase):
         n_past = x_past.shape[0]
         total = n_past * batch_size
 
-        rsig_cond = compute_rsig(x_past, self.A1, self.A2, self.xi1, self.xi2, self.reservoir_dim,
+        rsig_cond = self.rsig(x_past, self.A1, self.A2, self.xi1, self.xi2, self.reservoir_dim,
                                  self.activation, self.device).reshape(n_past, -1).to(device)
         rsig_cond = self.hidden_layer_init_2(rsig_cond)
         rsig_cond = self.activation(rsig_cond)

@@ -56,9 +56,15 @@ def reservoir_features(
     xi2: torch.tensor,
     dim: int,
     activation: Callable,
-    device: str
+    device: str,
+    terminal_diff: bool = False
 ):
-    return to_numpy(compute_rsig(x, A1, A2, xi1, xi2, dim, activation, device).reshape([x.shape[0], dim]))
+    """
+    Reservoir features of a path. With terminal_diff, these are the Delta RS of the
+    paper's conditional formulation (eqs. 36-38) rather than the raw reservoir state.
+    """
+    rsig = compute_rsig_td if terminal_diff else compute_rsig
+    return to_numpy(rsig(x, A1, A2, xi1, xi2, dim, activation, device).reshape([x.shape[0], dim]))
 
 
 def fit_lr_rsig(
@@ -70,13 +76,14 @@ def fit_lr_rsig(
     xi2: torch.tensor,
     dim: int,
     activation: Callable,
-    device: str
+    device: str,
+    terminal_diff: bool = False
 ) -> LinearRegression:
     """
     Fit the conditional expectation of the future randomised signature given the past one
     """
-    X = reservoir_features(x_past, A1, A2, xi1, xi2, dim, activation, device)
-    y = reservoir_features(x_future, A1, A2, xi1, xi2, dim, activation, device)
+    X = reservoir_features(x_past, A1, A2, xi1, xi2, dim, activation, device, terminal_diff)
+    y = reservoir_features(x_future, A1, A2, xi1, xi2, dim, activation, device, terminal_diff)
     estimator = LinearRegression(fit_intercept=True)
     estimator.fit(X, y)
     return estimator
@@ -91,12 +98,13 @@ def predict_lr_rsig(
     xi2: torch.tensor,
     dim: int,
     activation: Callable,
-    device: str
+    device: str,
+    terminal_diff: bool = False
 ) -> torch.tensor:
     """
     Apply a fitted estimator to pasts it was not fitted on
     """
-    X = reservoir_features(x_past, A1, A2, xi1, xi2, dim, activation, device)
+    X = reservoir_features(x_past, A1, A2, xi1, xi2, dim, activation, device, terminal_diff)
     return torch.from_numpy(estimator.predict(X)).float()
 
 
@@ -109,7 +117,8 @@ def lr_rsig(
     xi2: torch.tensor,
     dim: int,
     activation: Callable,
-    device: str
+    device: str,
+    terminal_diff: bool = False
 ) -> torch.tensor:
-    estimator = fit_lr_rsig(x_future, x_past, A1, A2, xi1, xi2, dim, activation, device)
-    return predict_lr_rsig(estimator, x_past, A1, A2, xi1, xi2, dim, activation, device)
+    estimator = fit_lr_rsig(x_future, x_past, A1, A2, xi1, xi2, dim, activation, device, terminal_diff)
+    return predict_lr_rsig(estimator, x_past, A1, A2, xi1, xi2, dim, activation, device, terminal_diff)

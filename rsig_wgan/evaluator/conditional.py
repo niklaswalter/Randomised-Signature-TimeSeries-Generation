@@ -11,7 +11,7 @@ import torch
 
 from rsig_wgan.config import ACTIVATION_REGISTRY
 from rsig_wgan.discriminator_models.sigcw1 import compute_sig, fit_lr_sig, predict_lr_sig
-from rsig_wgan.utils import (compute_rsig, fit_lr_rsig, generate_in_chunks, predict_lr_rsig,
+from rsig_wgan.utils import (compute_rsig, compute_rsig_td, fit_lr_rsig, generate_in_chunks, predict_lr_rsig,
                              sample_indices)
 
 from .metrics import acf_diff, cov_diff
@@ -45,6 +45,7 @@ class ConditionalEvaluator:
         self.num_epochs = config.hyperparameters.gradient_steps
         self.learning_rate = config.hyperparameters.learning_rate
         self.activation = ACTIVATION_REGISTRY[self.activation_id]
+        self.terminal_diff = config.rsigcw1.terminal_diff
         self.data_type = config.data.id
         self.batch_size = config.hyperparameters.batch_size
         self.device = device
@@ -91,7 +92,7 @@ class ConditionalEvaluator:
     def fit_estimator(self):
         if self.discriminator_id == "RSigCW1":
             return fit_lr_rsig(self.x_fit_future, self.x_fit_past, self.A1, self.A2, self.xi1, self.xi2,
-                               self.dim_res, self.activation, self.device)
+                               self.dim_res, self.activation, self.device, self.terminal_diff)
         elif self.discriminator_id == "SigCW1":
             return fit_lr_sig(self.x_fit_future, self.x_fit_past, self.trunc, self.device, self.augmented)
         raise ValueError(f"Unknown conditional discriminator id: {self.discriminator_id}")
@@ -99,13 +100,14 @@ class ConditionalEvaluator:
     def predict(self, x_past):
         if self.discriminator_id == "RSigCW1":
             return predict_lr_rsig(self.estimator, x_past, self.A1, self.A2, self.xi1, self.xi2,
-                                   self.dim_res, self.activation, self.device)
+                                   self.dim_res, self.activation, self.device, self.terminal_diff)
         return predict_lr_sig(self.estimator, x_past, self.trunc, self.device, self.augmented)
 
     def features(self, x):
         if self.discriminator_id == "RSigCW1":
-            return compute_rsig(x, self.A1, self.A2, self.xi1, self.xi2, self.dim_res,
-                                self.activation, self.device).reshape([x.shape[0], self.dim_res])
+            rsig = compute_rsig_td if self.terminal_diff else compute_rsig
+            return rsig(x, self.A1, self.A2, self.xi1, self.xi2, self.dim_res,
+                        self.activation, self.device).reshape([x.shape[0], self.dim_res])
         return compute_sig(x, self.trunc, self.device, self.augmented)
 
     def generate_conditional(self, x_past, samples_per_past=None):

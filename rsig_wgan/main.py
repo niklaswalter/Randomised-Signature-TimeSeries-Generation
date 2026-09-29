@@ -111,6 +111,7 @@ def get_training(config, generator, x_train, x_val, device, A1, A2, xi1, xi2):
             xi1=xi1,
             xi2=xi2,
             past_chunk=config.hyperparameters.past_chunk,
+            terminal_diff=config.rsigcw1.terminal_diff,
             checkpoint_every=config.hyperparameters.checkpoint_every,
             checkpoint_seed=config.hyperparameters.checkpoint_seed
         )

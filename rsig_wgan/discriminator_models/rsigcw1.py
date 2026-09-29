@@ -6,7 +6,7 @@ from torch import optim
 from tqdm import tqdm
 
 from rsig_wgan.config import ACTIVATION_REGISTRY
-from rsig_wgan.utils import compute_rsig, generate_in_chunks, lr_rsig, sample_indices
+from rsig_wgan.utils import compute_rsig, compute_rsig_td, generate_in_chunks, lr_rsig, sample_indices
 from rsig_wgan.discriminator_models.utils import fixed_rng
 
 
@@ -25,6 +25,8 @@ class RSigCW1Metric:
         self.indices = indices
         self.res_dim = config.rsigcw1.reservoir_dim_metric
         self.activation = ACTIVATION_REGISTRY[config.neural_sde.activation]
+        self.terminal_diff = config.rsigcw1.terminal_diff
+        self.rsig = compute_rsig_td if self.terminal_diff else compute_rsig
         self.device = device
 
         self.A1, self.A2 = A1, A2
@@ -40,12 +42,13 @@ class RSigCW1Metric:
         self.x_real_future = x_real[:, self.p:, :].to(self.device)
 
         self.res_estimate = lr_rsig(self.x_real_future, self.x_real_past, self.A1, self.A2, self.xi1, self.xi2,
-                                    self.res_dim, self.activation, self.device)[self.indices].clone()
+                                    self.res_dim, self.activation, self.device,
+                                    self.terminal_diff)[self.indices].clone()
         self.x_past_sample = self.x_real_past[self.indices].clone()
 
     def __call__(self, x_fake):
-        expected_reservoir_fake = compute_rsig(x_fake, self.A1, self.A2, self.xi1, self.xi2, self.res_dim,
-                                                   self.activation, self.device).mean(0)
+        expected_reservoir_fake = self.rsig(x_fake, self.A1, self.A2, self.xi1, self.xi2, self.res_dim,
+                                            self.activation, self.device).mean(0)
         loss = torch.norm(self.res_estimate - expected_reservoir_fake, p=2, dim=1).mean()
         return loss
 
@@ -55,7 +58,7 @@ class RSigCWGANTraining:
     Class for training procedure with RSig-CW1 discriminator
     """
     def __init__(self, x_train, x_val, batch_size, generator, p, q, dim_res, mc_num, num_grad_steps, learning_rate,
-                 activation, device, A1, A2, xi1, xi2, terminal=True, past_chunk=None,
+                 activation, device, A1, A2, xi1, xi2, terminal_diff=True, past_chunk=None,
                  checkpoint_every: int = 100, checkpoint_seed: int = 12345):
 
         self.p = p
@@ -82,11 +85,12 @@ class RSigCWGANTraining:
         self.train_losses_history = defaultdict(list)
         self.val_losses_history = defaultdict(list)
         self.device = device
-        self.terminal = terminal
+        self.terminal_diff = terminal_diff
+        self.rsig = compute_rsig_td if terminal_diff else compute_rsig
         self.past_chunk = past_chunk
 
         self.res_estimate = lr_rsig(self.x_train_future, self.x_train_past, self.A1, self.A2, self.xi1, self.xi2,
-                                    self.dim_res, self.activation, self.device)
+                                    self.dim_res, self.activation, self.device, terminal_diff)
 
         self.checkpoint_every = checkpoint_every
         self.checkpoint_seed = checkpoint_seed
@@ -104,7 +108,7 @@ class RSigCWGANTraining:
     def sample_rsig_fake(self, mc_batch_size=1000):
         x_past_mc = self.x_train_past.repeat(mc_batch_size, 1, 1).requires_grad_()
         x_fake = self.generator(mc_batch_size, self.q, x_past_mc)
-        rsig_fake_future = compute_rsig(x_fake, self.A1, self.A2, self.xi1, self.xi2, self.dim_res, self.activation, self.device)
+        rsig_fake_future = self.rsig(x_fake, self.A1, self.A2, self.xi1, self.xi2, self.dim_res, self.activation, self.device)
         rsig_fake_ce = rsig_fake_future.reshape(mc_batch_size, self.x_train_past.size(0), -1).mean(0)
         return rsig_fake_ce, x_fake
 
@@ -114,7 +118,7 @@ class RSigCWGANTraining:
             rsig_pred = self.res_estimate[self.checkpoint_idx].to(self.device)
             x_past = self.x_train_past[self.checkpoint_idx].to(self.device)
             x = generate_in_chunks(self.generator, self.mc_num, self.q, x_past, self.past_chunk).to(self.device)
-            rsig_fake = compute_rsig(x, self.A1, self.A2, self.xi1, self.xi2,
+            rsig_fake = self.rsig(x, self.A1, self.A2, self.xi1, self.xi2,
                                      self.dim_res, self.activation, self.device)
             rsig_fake_mc = rsig_fake.reshape(len(self.checkpoint_idx), self.mc_num, self.dim_res).mean(1)
             return torch.norm(rsig_pred - rsig_fake_mc, p=2, dim=1).mean().item()
@@ -126,7 +130,7 @@ class RSigCWGANTraining:
             self.generator_optim.zero_grad()
             rsig_pred, x_past = self.sample_batch()
             x = generate_in_chunks(self.generator, self.mc_num, self.q, x_past, self.past_chunk).to(self.device)
-            rsig_fake = compute_rsig(x, self.A1, self.A2, self.xi1, self.xi2,
+            rsig_fake = self.rsig(x, self.A1, self.A2, self.xi1, self.xi2,
                                                   self.dim_res, self.activation, self.device)
             rsig_fake_mc = rsig_fake.reshape(self.batch_size, self.mc_num, self.dim_res).mean(1)
 
